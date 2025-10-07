@@ -1,0 +1,110 @@
+/* ==========================================================================
+   Magic Shop Theme - Mystical and Arcane
+   ========================================================================== */
+
+.shop-type-magic_shop {
+	--theme-primary: #7c3aed;
+	--theme-secondary: #a855f7;
+	--theme-accent: #c084fc;
+	--theme-background: rgba(124, 58, 237, 0.05);
+	--theme-border: rgba(124, 58, 237, 0.3);
+}
+
+/* Header styling */
+.shop-type-magic_shop .shop-header {
+	background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+	border-bottom-color: var(--theme-border);
+	position: relative;
+}
+
+.shop-type-magic_shop .shop-header::before {
+	content: '✦';
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	font-size: 2rem;
+	color: var(--theme-secondary);
+	opacity: 0.5;
+}
+
+.shop-type-magic_shop .shop-header::after {
+	content: '✦';
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	font-size: 2rem;
+	color: var(--theme-secondary);
+	opacity: 0.5;
+}
+
+.shop-type-magic_shop .shop-name {
+	color: var(--theme-primary);
+	text-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+}
+
+.shop-type-magic_shop .shop-type-badge {
+	background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+	box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+
+/* Inventory items */
+.shop-type-magic_shop .inventory-item {
+	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(124, 58, 237, 0.03) 100%);
+	border-color: var(--theme-border);
+	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+}
+
+.shop-type-magic_shop .inventory-item:hover {
+	border-color: var(--theme-secondary);
+	box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(124, 58, 237, 0.08) 100%);
+}
+
+.shop-type-magic_shop .inventory-item::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, transparent, var(--theme-secondary), transparent);
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+
+.shop-type-magic_shop .inventory-item:hover::before {
+	opacity: 1;
+}
+
+.shop-type-magic_shop .item-name {
+	color: var(--theme-primary);
+}
+
+.shop-type-magic_shop .item-price {
+	color: var(--theme-secondary);
+	text-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+}
+
+/* Rarity badges for magic shop */
+.shop-type-magic_shop .item-rarity-badge {
+	background: var(--theme-primary);
+	color: white;
+	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+/* Mystical glow effect */
+.shop-type-magic_shop .shop-inventory {
+	position: relative;
+}
+
+.shop-type-magic_shop .shop-inventory::before {
+	content: '';
+	position: absolute;
+	top: -20px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 200px;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, var(--theme-secondary), transparent);
+	opacity: 0.3;
+}

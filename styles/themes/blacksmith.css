@@ -1,0 +1,103 @@
+/* ==========================================================================
+   Blacksmith Theme - Forge and Fire
+   ========================================================================== */
+
+.shop-type-blacksmith {
+	--theme-primary: #dc2626;
+	--theme-secondary: #ea580c;
+	--theme-accent: #f97316;
+	--theme-background: rgba(220, 38, 38, 0.05);
+	--theme-border: rgba(220, 38, 38, 0.3);
+}
+
+/* Header styling */
+.shop-type-blacksmith .shop-header {
+	background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(234, 88, 12, 0.1) 100%);
+	border-bottom: 3px solid var(--theme-border);
+	border-bottom-style: solid;
+}
+
+.shop-type-blacksmith .shop-header::before {
+	content: '⚒';
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	font-size: 2.5rem;
+	color: var(--theme-primary);
+	opacity: 0.4;
+}
+
+.shop-type-blacksmith .shop-name {
+	color: var(--theme-primary);
+	font-weight: 800;
+	text-shadow: 2px 2px 0 rgba(220, 38, 38, 0.2);
+}
+
+.shop-type-blacksmith .shop-type-badge {
+	background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+	box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+}
+
+/* Inventory items */
+.shop-type-blacksmith .inventory-item {
+	background: var(--background-secondary);
+	border: 3px solid var(--theme-border);
+	border-left-width: 6px;
+	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15),
+				inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.shop-type-blacksmith .inventory-item:hover {
+	border-color: var(--theme-secondary);
+	box-shadow: 0 8px 24px rgba(234, 88, 12, 0.3),
+				inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	transform: translateY(-4px);
+}
+
+.shop-type-blacksmith .item-name {
+	color: var(--theme-primary);
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.shop-type-blacksmith .item-price {
+	color: var(--theme-secondary);
+	font-weight: 800;
+}
+
+/* Metallic texture effect */
+.shop-type-blacksmith .inventory-item::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg,
+		transparent 0%,
+		var(--theme-accent) 50%,
+		transparent 100%);
+	opacity: 0.3;
+}
+
+.shop-type-blacksmith .item-rarity-badge {
+	background: var(--theme-primary);
+	color: white;
+	font-weight: 700;
+	text-transform: uppercase;
+	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+}
+
+/* Forge glow effect on hover */
+.shop-type-blacksmith .inventory-item:hover::after {
+	opacity: 0.6;
+	animation: forge-glow 2s ease-in-out infinite;
+}
+
+@keyframes forge-glow {
+	0%, 100% { opacity: 0.3; }
+	50% { opacity: 0.8; }
+}

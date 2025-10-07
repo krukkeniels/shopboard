@@ -1,0 +1,95 @@
+/* ==========================================================================
+   General Store Theme - Rustic and Welcoming
+   ========================================================================== */
+
+.shop-type-general_store {
+	--theme-primary: #92400e;
+	--theme-secondary: #b45309;
+	--theme-accent: #d97706;
+	--theme-background: rgba(146, 64, 14, 0.05);
+	--theme-border: rgba(146, 64, 14, 0.3);
+}
+
+/* Header styling */
+.shop-type-general_store .shop-header {
+	background: linear-gradient(135deg, rgba(146, 64, 14, 0.08) 0%, rgba(180, 83, 9, 0.08) 100%);
+	border-bottom: 3px solid var(--theme-border);
+}
+
+.shop-type-general_store .shop-header::before {
+	content: '⚖';
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	font-size: 2rem;
+	color: var(--theme-primary);
+	opacity: 0.4;
+}
+
+.shop-type-general_store .shop-name {
+	color: var(--theme-primary);
+	font-family: var(--font-text);
+}
+
+.shop-type-general_store .shop-type-badge {
+	background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+	box-shadow: 0 2px 8px rgba(146, 64, 14, 0.3);
+}
+
+/* Inventory items */
+.shop-type-general_store .inventory-item {
+	background: var(--background-secondary);
+	border: 2px solid var(--theme-border);
+	box-shadow: 0 2px 6px rgba(146, 64, 14, 0.1);
+}
+
+.shop-type-general_store .inventory-item:hover {
+	border-color: var(--theme-secondary);
+	box-shadow: 0 6px 16px rgba(146, 64, 14, 0.2);
+}
+
+.shop-type-general_store .item-name {
+	color: var(--theme-primary);
+	font-weight: 600;
+}
+
+.shop-type-general_store .item-price {
+	color: var(--theme-secondary);
+	font-weight: 700;
+}
+
+/* Wood texture effect */
+.shop-type-general_store .inventory-item::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background:
+		repeating-linear-gradient(
+			90deg,
+			transparent,
+			transparent 2px,
+			rgba(146, 64, 14, 0.02) 2px,
+			rgba(146, 64, 14, 0.02) 4px
+		);
+	pointer-events: none;
+	border-radius: 12px;
+}
+
+.shop-type-general_store .item-rarity-badge {
+	background: var(--theme-primary);
+	color: #fef3c7;
+	box-shadow: 0 2px 6px rgba(146, 64, 14, 0.3);
+}
+
+/* Simple, welcoming aesthetic */
+.shop-type-general_store .shop-inventory {
+	padding: 1.5rem;
+}
+
+/* Warm lighting effect */
+.shop-type-general_store .inventory-item:hover {
+	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(217, 119, 6, 0.05) 100%);
+}

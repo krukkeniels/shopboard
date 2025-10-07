@@ -1,0 +1,279 @@
+/* ==========================================================================
+   Shop Display - Base Styles
+   ========================================================================== */
+
+/* Container */
+.shopboard-display-container {
+	width: 100%;
+	height: 100%;
+	overflow-y: auto;
+	background: var(--background-primary);
+	padding: 2rem;
+}
+
+/* Main display wrapper */
+.shopboard-display {
+	max-width: 1400px;
+	margin: 0 auto;
+	font-family: var(--font-interface);
+}
+
+/* ==========================================================================
+   Shop Header
+   ========================================================================== */
+
+.shop-header {
+	text-align: center;
+	margin-bottom: 3rem;
+	padding: 2rem;
+	border-bottom: 3px double var(--background-modifier-border);
+	position: relative;
+}
+
+.shop-name {
+	font-size: 3rem;
+	font-weight: 700;
+	margin: 0 0 1rem 0;
+	color: var(--text-title-h1);
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+	font-family: var(--font-text);
+	letter-spacing: 0.05em;
+}
+
+.shop-type-badge {
+	display: inline-block;
+	padding: 0.5rem 1.5rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: 20px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	margin-top: 0.5rem;
+}
+
+.price-modifier-badge {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	padding: 0.5rem 1rem;
+	background: var(--background-modifier-warning);
+	color: var(--text-normal);
+	border-radius: 8px;
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+/* ==========================================================================
+   Inventory Grid
+   ========================================================================== */
+
+.shop-inventory {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 1.5rem;
+	padding: 1rem;
+}
+
+.inventory-empty {
+	grid-column: 1 / -1;
+	text-align: center;
+	padding: 3rem;
+	color: var(--text-muted);
+	font-size: 1.1rem;
+	font-style: italic;
+}
+
+/* ==========================================================================
+   Inventory Items
+   ========================================================================== */
+
+.inventory-item {
+	background: var(--background-secondary);
+	border: 2px solid var(--background-modifier-border);
+	border-radius: 12px;
+	padding: 1.5rem;
+	transition: all 0.3s ease;
+	position: relative;
+	overflow: hidden;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-item:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+	border-color: var(--interactive-accent);
+}
+
+.item-name {
+	font-size: 1.4rem;
+	font-weight: 700;
+	margin-bottom: 0.75rem;
+	color: var(--text-title-h2);
+	line-height: 1.3;
+}
+
+.item-description {
+	font-size: 0.95rem;
+	color: var(--text-muted);
+	margin-bottom: 1rem;
+	line-height: 1.6;
+	min-height: 3em;
+}
+
+.item-price {
+	font-size: 1.6rem;
+	font-weight: 700;
+	color: var(--interactive-accent);
+	margin-bottom: 0.5rem;
+	font-family: var(--font-monospace);
+}
+
+.item-quantity {
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+.item-rarity-badge {
+	position: absolute;
+	top: 0.75rem;
+	right: 0.75rem;
+	padding: 0.25rem 0.75rem;
+	border-radius: 12px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: capitalize;
+	background: var(--background-modifier-border);
+	color: var(--text-normal);
+}
+
+/* ==========================================================================
+   Rarity Colors
+   ========================================================================== */
+
+.inventory-item.rarity-common {
+	border-left: 4px solid #9e9e9e;
+}
+
+.inventory-item.rarity-uncommon {
+	border-left: 4px solid #4caf50;
+}
+
+.inventory-item.rarity-rare {
+	border-left: 4px solid #2196f3;
+}
+
+.inventory-item.rarity-very-rare {
+	border-left: 4px solid #9c27b0;
+}
+
+.inventory-item.rarity-legendary {
+	border-left: 4px solid #ff9800;
+}
+
+.inventory-item.rarity-artifact {
+	border-left: 4px solid #f44336;
+}
+
+/* ==========================================================================
+   Missing Items
+   ========================================================================== */
+
+.inventory-item.item-missing {
+	opacity: 0.7;
+	border-style: dashed;
+	background: var(--background-primary-alt);
+}
+
+.item-warning {
+	color: var(--text-warning);
+	font-size: 0.85rem;
+	margin-bottom: 0.5rem;
+	font-weight: 500;
+}
+
+/* ==========================================================================
+   Empty State
+   ========================================================================== */
+
+.shopboard-empty {
+	text-align: center;
+	padding: 4rem 2rem;
+	color: var(--text-muted);
+}
+
+.shopboard-empty h2 {
+	font-size: 2rem;
+	margin-bottom: 1rem;
+	color: var(--text-normal);
+}
+
+.shopboard-empty p {
+	font-size: 1.1rem;
+	line-height: 1.6;
+}
+
+/* ==========================================================================
+   Error State
+   ========================================================================== */
+
+.shopboard-error {
+	text-align: center;
+	padding: 4rem 2rem;
+	color: var(--text-error);
+}
+
+.shopboard-error h2 {
+	font-size: 2rem;
+	margin-bottom: 1rem;
+}
+
+.shopboard-error p {
+	font-size: 1.1rem;
+	line-height: 1.6;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 768px) {
+	.shop-inventory {
+		grid-template-columns: 1fr;
+	}
+
+	.shop-name {
+		font-size: 2rem;
+	}
+
+	.price-modifier-badge {
+		position: static;
+		display: block;
+		margin-top: 1rem;
+		width: fit-content;
+		margin-left: auto;
+		margin-right: auto;
+	}
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+	.shopboard-display-container {
+		padding: 0;
+	}
+
+	.inventory-item {
+		break-inside: avoid;
+		page-break-inside: avoid;
+	}
+
+	.inventory-item:hover {
+		transform: none;
+		box-shadow: none;
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"id": "shopboard",
+	"name": "Shopboard",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Manage and display shop inventories for D&D sessions. Create shops with customizable pricing and present them in a pop-out window for players.",
+	"author": "Your Name",
+	"authorUrl": "https://github.com/yourusername/shopboard",
+	"isDesktopOnly": false
+}

@@ -1,0 +1,85 @@
+/* Shopboard Plugin - Main Stylesheet */
+
+/* Core Display Styles */
+@import './display.css';
+
+/* DM Control Panel Styles */
+@import './dm-control.css';
+
+/* Template Modal Styles */
+@import './template-modal.css';
+
+/* Shop Type Themes */
+@import './themes/magic-shop.css';
+@import './themes/blacksmith.css';
+@import './themes/general-store.css';
+@import './themes/alchemist.css';
+
+/* Global Plugin Styles */
+
+.shopboard-container {
+	font-family: var(--font-text);
+	color: var(--text-normal);
+}
+
+/* Common animations */
+@keyframes shopboard-fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes shopboard-slideIn {
+	from {
+		transform: translateY(-10px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+/* Utility classes */
+.shopboard-hidden {
+	display: none !important;
+}
+
+.shopboard-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 40px;
+	color: var(--text-muted);
+}
+
+.shopboard-error {
+	padding: 20px;
+	background: var(--background-modifier-error);
+	border-radius: 6px;
+	color: var(--text-error);
+	margin: 10px 0;
+}
+
+/* Accessibility */
+.shopboard-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
+}
+
+/* Responsive behavior */
+@media (max-width: 768px) {
+	.shopboard-container {
+		font-size: 0.95em;
+	}
+}

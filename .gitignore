@@ -1,0 +1,20 @@
+node_modules/
+config.json
+.DS_Store
+*.log
+npm-debug.log*
+.vscode/
+.idea/
+
+# Build artifacts
+main.js
+main.js.map
+*.js.map
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Package manager
+package-lock.json
+yarn.lock
