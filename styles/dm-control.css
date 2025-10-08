@@ -103,11 +103,18 @@
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 8px;
 	padding: 1rem;
-	transition: border-color 0.2s ease;
+	transition: all 0.2s ease;
 }
 
 .control-item:hover {
 	border-color: var(--interactive-accent);
+}
+
+.control-item.control-item-selected {
+	background: var(--interactive-accent-hover);
+	border-color: var(--interactive-accent);
+	border-width: 2px;
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }
 
 .control-item.item-missing {
@@ -151,6 +158,41 @@
 .item-info .item-warning {
 	font-size: 0.8rem;
 	color: var(--text-error);
+}
+
+/* ==========================================================================
+   Action Controls
+   ========================================================================== */
+
+.action-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.info-button {
+	width: 100%;
+	padding: 0.5rem 1rem;
+	background: var(--background-modifier-info);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+}
+
+.info-button:hover {
+	background: var(--interactive-hover);
+	border-color: var(--interactive-accent);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.info-button:active {
+	transform: translateY(0);
 }
 
 /* ==========================================================================

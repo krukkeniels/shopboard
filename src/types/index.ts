@@ -16,6 +16,8 @@ export interface ItemData {
 	rarity?: string;
 	/** Item description */
 	description?: string;
+	/** Image URL (can be online resource or local file path) */
+	imageUrl?: string;
 	/** Additional metadata from frontmatter */
 	metadata: Record<string, any>;
 }

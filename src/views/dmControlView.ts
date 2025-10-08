@@ -15,6 +15,7 @@ export class DMControlView extends ItemView {
 	private plugin: ShopboardPlugin;
 	private currentShop: ShopData | null = null;
 	private currentShopFile: TFile | null = null;
+	private selectedItemPath: string | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ShopboardPlugin) {
 		super(leaf);
@@ -67,6 +68,19 @@ export class DMControlView extends ItemView {
 					// Re-parse and update display
 					await this.syncWithShop(this.currentShopFile);
 				}
+			})
+		);
+
+		// Listen for item detail events to track selected item
+		this.registerEvent(
+			this.app.workspace.on('shopboard:show-item-detail', (itemData: any) => {
+				// Toggle selection
+				if (this.selectedItemPath === itemData.path) {
+					this.selectedItemPath = null;
+				} else {
+					this.selectedItemPath = itemData.path;
+				}
+				this.render();
 			})
 		);
 	}
@@ -205,6 +219,11 @@ export class DMControlView extends ItemView {
 
 		const item = invItem.itemData;
 
+		// Add selected class if this item is selected
+		if (this.selectedItemPath === item.path) {
+			controlEl.addClass('control-item-selected');
+		}
+
 		// Item info section
 		const infoEl = controlEl.createDiv({ cls: 'item-info' });
 
@@ -232,12 +251,26 @@ export class DMControlView extends ItemView {
 			text: priceText
 		});
 
+		// Action controls section
+		const controlsEl = controlEl.createDiv({ cls: 'action-controls' });
+
+		// More Info button
+		const infoButton = controlsEl.createEl('button', {
+			cls: 'info-button',
+			text: 'More Info'
+		});
+
+		// Info button click handler
+		infoButton.addEventListener('click', () => {
+			this.handleShowItemDetail(invItem);
+		});
+
 		// Purchase controls section (only if item is in stock)
 		if (invItem.quantity > 0) {
-			const controlsEl = controlEl.createDiv({ cls: 'purchase-controls' });
+			const purchaseEl = controlsEl.createDiv({ cls: 'purchase-controls' });
 
 			// Quantity input
-			const quantityInput = controlsEl.createEl('input', {
+			const quantityInput = purchaseEl.createEl('input', {
 				type: 'number',
 				cls: 'quantity-input',
 				attr: {
@@ -248,7 +281,7 @@ export class DMControlView extends ItemView {
 			});
 
 			// Record sale button
-			const recordButton = controlsEl.createEl('button', {
+			const recordButton = purchaseEl.createEl('button', {
 				cls: 'record-sale-button',
 				text: 'Record Sale'
 			});
@@ -278,6 +311,19 @@ export class DMControlView extends ItemView {
 			cls: 'item-warning',
 			text: '⚠️ Item not found'
 		});
+	}
+
+	/**
+	 * Handle showing item detail
+	 */
+	private handleShowItemDetail(invItem: ShopInventoryItem): void {
+		if (!invItem.itemData) {
+			new Notice('Item data not available');
+			return;
+		}
+
+		// Trigger event for shop display to show item detail
+		this.app.workspace.trigger('shopboard:show-item-detail', invItem.itemData);
 	}
 
 	/**

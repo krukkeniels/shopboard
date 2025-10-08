@@ -106,6 +106,61 @@
 	border-color: var(--interactive-accent);
 }
 
+.inventory-item.inventory-item-selected {
+	border-color: var(--interactive-accent);
+	border-width: 5px;
+	animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+	0%, 100% {
+		box-shadow:
+			0 0 15px var(--interactive-accent),
+			0 0 30px var(--interactive-accent),
+			0 0 45px var(--interactive-accent),
+			0 4px 16px rgba(0, 0, 0, 0.3);
+	}
+	50% {
+		box-shadow:
+			0 0 25px var(--interactive-accent),
+			0 0 50px var(--interactive-accent),
+			0 0 75px var(--interactive-accent),
+			0 6px 20px rgba(0, 0, 0, 0.4);
+	}
+}
+
+.item-image-container {
+	width: 100%;
+	height: 200px;
+	margin-bottom: 1rem;
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--background-primary-alt);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.item-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 0.3s ease;
+}
+
+.item-image:hover {
+	transform: scale(1.05);
+}
+
+.item-image-placeholder {
+	font-size: 4rem;
+	opacity: 0.3;
+}
+
+.item-image-error {
+	background: var(--background-modifier-error-hover);
+}
+
 .item-name {
 	font-size: 1.4rem;
 	font-weight: 700;
@@ -147,34 +202,6 @@
 	text-transform: capitalize;
 	background: var(--background-modifier-border);
 	color: var(--text-normal);
-}
-
-/* ==========================================================================
-   Rarity Colors
-   ========================================================================== */
-
-.inventory-item.rarity-common {
-	border-left: 4px solid #9e9e9e;
-}
-
-.inventory-item.rarity-uncommon {
-	border-left: 4px solid #4caf50;
-}
-
-.inventory-item.rarity-rare {
-	border-left: 4px solid #2196f3;
-}
-
-.inventory-item.rarity-very-rare {
-	border-left: 4px solid #9c27b0;
-}
-
-.inventory-item.rarity-legendary {
-	border-left: 4px solid #ff9800;
-}
-
-.inventory-item.rarity-artifact {
-	border-left: 4px solid #f44336;
 }
 
 /* ==========================================================================
@@ -259,6 +286,218 @@
 }
 
 /* ==========================================================================
+   Split View Layout
+   ========================================================================== */
+
+.shopboard-split-view {
+	display: flex;
+	gap: 1rem;
+	height: 100%;
+}
+
+.shopboard-split-view .main-display {
+	flex: 0 0 calc(80vw - 3rem);
+	overflow-y: auto;
+}
+
+/* ==========================================================================
+   Detail Panel
+   ========================================================================== */
+
+.item-detail-panel {
+	flex: 0 0 20vw;
+	background: var(--background-secondary);
+	border-left: 2px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+	animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+.detail-panel-content {
+	flex: 1;
+	overflow-y: auto;
+	padding: 1.5rem;
+	line-height: 1.6;
+}
+
+/* Detail panel item info */
+.detail-item-image-container {
+	width: 100%;
+	aspect-ratio: 1;
+	margin-bottom: 1rem;
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--background-primary-alt);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.detail-item-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.detail-image-placeholder {
+	font-size: 4rem;
+	opacity: 0.3;
+}
+
+.detail-image-error {
+	background: var(--background-modifier-error-hover);
+}
+
+.detail-item-name {
+	font-size: 1.8rem;
+	font-weight: 700;
+	margin: 1rem 0 0.75rem 0;
+	color: var(--text-title-h1);
+	line-height: 1.2;
+}
+
+.detail-meta-section {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 1rem;
+	flex-wrap: wrap;
+}
+
+.detail-item-price {
+	font-size: 1.8rem;
+	font-weight: 700;
+	color: var(--interactive-accent);
+	font-family: var(--font-monospace);
+}
+
+.detail-item-rarity {
+	padding: 0.4rem 1rem;
+	border-radius: 16px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: white;
+}
+
+/* Rarity colors for detail panel */
+.detail-item-rarity.rarity-common {
+	background: #9e9e9e;
+}
+
+.detail-item-rarity.rarity-uncommon {
+	background: #4caf50;
+}
+
+.detail-item-rarity.rarity-rare {
+	background: #2196f3;
+}
+
+.detail-item-rarity.rarity-very-rare {
+	background: #9c27b0;
+}
+
+.detail-item-rarity.rarity-legendary {
+	background: #ff9800;
+}
+
+.detail-item-rarity.rarity-artifact {
+	background: #f44336;
+}
+
+.detail-item-description {
+	font-size: 1.1rem;
+	color: var(--text-muted);
+	margin-bottom: 1rem;
+	line-height: 1.6;
+	font-style: italic;
+}
+
+.detail-divider {
+	border: none;
+	border-top: 2px solid var(--background-modifier-border);
+	margin: 1.5rem 0;
+}
+
+.detail-markdown-content {
+	margin-top: 1rem;
+}
+
+.detail-panel-content h1,
+.detail-panel-content h2,
+.detail-panel-content h3,
+.detail-panel-content h4 {
+	margin-top: 1.5rem;
+	margin-bottom: 0.5rem;
+	color: var(--text-normal);
+}
+
+.detail-panel-content h1 {
+	font-size: 1.5rem;
+}
+
+.detail-panel-content h2 {
+	font-size: 1.3rem;
+}
+
+.detail-panel-content h3 {
+	font-size: 1.1rem;
+}
+
+.detail-panel-content p {
+	margin-bottom: 1rem;
+}
+
+.detail-panel-content ul,
+.detail-panel-content ol {
+	margin-bottom: 1rem;
+	padding-left: 1.5rem;
+}
+
+.detail-panel-content li {
+	margin-bottom: 0.25rem;
+}
+
+.detail-panel-content strong {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.detail-panel-content em {
+	font-style: italic;
+	color: var(--text-muted);
+}
+
+.detail-panel-content code {
+	background: var(--background-primary);
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-family: var(--font-monospace);
+	font-size: 0.9em;
+}
+
+.detail-panel-error {
+	color: var(--text-error);
+	text-align: center;
+	padding: 2rem;
+	font-style: italic;
+}
+
+/* ==========================================================================
    Print Styles
    ========================================================================== */
 
@@ -275,5 +514,9 @@
 	.inventory-item:hover {
 		transform: none;
 		box-shadow: none;
+	}
+
+	.item-detail-panel {
+		display: none;
 	}
 }

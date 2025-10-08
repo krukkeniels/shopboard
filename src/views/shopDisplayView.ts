@@ -1,5 +1,5 @@
-import { ItemView, WorkspaceLeaf, TFile } from 'obsidian';
-import { ShopData } from '../types';
+import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer } from 'obsidian';
+import { ShopData, ItemData } from '../types';
 import ShopboardPlugin from '../main';
 
 /**
@@ -16,6 +16,7 @@ export class ShopDisplayView extends ItemView {
 	private shopData: ShopData | null = null;
 	private shopFile: TFile | null = null;
 	private refreshInterval: number | null = null;
+	private selectedItem: ItemData | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ShopboardPlugin) {
 		super(leaf);
@@ -58,6 +59,13 @@ export class ShopDisplayView extends ItemView {
 		if (this.plugin.settings.autoRefresh) {
 			this.setupAutoRefresh();
 		}
+
+		// Listen for item detail events from DM control
+		this.registerEvent(
+			this.app.workspace.on('shopboard:show-item-detail', (itemData: ItemData) => {
+				this.showItemDetail(itemData);
+			})
+		);
 	}
 
 	/**
@@ -104,16 +112,31 @@ export class ShopDisplayView extends ItemView {
 			return;
 		}
 
-		// Create main display container with shop type class
-		const displayEl = container.createDiv({
-			cls: `shopboard-display shop-type-${this.shopData.shopType}`
-		});
+		// Create split-view container if item is selected
+		if (this.selectedItem) {
+			const splitContainer = container.createDiv({ cls: 'shopboard-split-view' });
 
-		// Render shop header
-		this.renderHeader(displayEl);
+			// Main display (left side)
+			const mainDisplay = splitContainer.createDiv({
+				cls: `shopboard-display shop-type-${this.shopData.shopType} main-display`
+			});
+			this.renderHeader(mainDisplay);
+			this.renderInventory(mainDisplay);
 
-		// Render inventory
-		this.renderInventory(displayEl);
+			// Detail panel (right side)
+			this.renderDetailPanel(splitContainer);
+		} else {
+			// Create main display container with shop type class
+			const displayEl = container.createDiv({
+				cls: `shopboard-display shop-type-${this.shopData.shopType}`
+			});
+
+			// Render shop header
+			this.renderHeader(displayEl);
+
+			// Render inventory
+			this.renderInventory(displayEl);
+		}
 	}
 
 	/**
@@ -179,7 +202,10 @@ export class ShopDisplayView extends ItemView {
 	private renderInventory(container: HTMLElement): void {
 		const inventoryEl = container.createDiv({ cls: 'shop-inventory' });
 
-		if (this.shopData!.inventory.length === 0) {
+		// Filter out items with 0 quantity
+		const availableItems = this.shopData!.inventory.filter(item => item.quantity > 0);
+
+		if (availableItems.length === 0) {
 			inventoryEl.createDiv({
 				cls: 'inventory-empty',
 				text: 'This shop has no items in stock.'
@@ -188,7 +214,7 @@ export class ShopDisplayView extends ItemView {
 		}
 
 		// Render each inventory item
-		for (const invItem of this.shopData!.inventory) {
+		for (const invItem of availableItems) {
 			this.renderInventoryItem(inventoryEl, invItem);
 		}
 	}
@@ -207,9 +233,42 @@ export class ShopDisplayView extends ItemView {
 
 		const item = invItem.itemData;
 
+		// Add selected class if this item is currently selected
+		if (this.selectedItem && this.selectedItem.path === item.path) {
+			itemEl.addClass('inventory-item-selected');
+		}
+
 		// Add rarity class if available
 		if (item.rarity) {
 			itemEl.addClass(`rarity-${item.rarity.toLowerCase().replace(/\s+/g, '-')}`);
+		}
+
+		// Item image (if available)
+		if (item.imageUrl) {
+			const imgContainer = itemEl.createDiv({ cls: 'item-image-container' });
+			const imgEl = imgContainer.createEl('img', { cls: 'item-image' });
+
+			// Handle both online URLs and local file paths
+			if (item.imageUrl.startsWith('http://') || item.imageUrl.startsWith('https://')) {
+				// Online resource
+				imgEl.src = item.imageUrl;
+			} else {
+				// Local file path - use Obsidian's resource path
+				const resourcePath = this.app.vault.adapter.getResourcePath(item.imageUrl);
+				imgEl.src = resourcePath;
+			}
+
+			imgEl.alt = item.name;
+
+			// Handle image load errors gracefully
+			imgEl.onerror = () => {
+				imgContainer.addClass('item-image-error');
+				imgContainer.empty();
+				imgContainer.createDiv({
+					cls: 'item-image-placeholder',
+					text: '🖼️'
+				});
+			};
 		}
 
 		// Item name
@@ -275,6 +334,130 @@ export class ShopDisplayView extends ItemView {
 			cls: 'item-quantity',
 			text: `${invItem.quantity} in stock`
 		});
+	}
+
+	/**
+	 * Show item detail panel (toggle if same item clicked again)
+	 */
+	private showItemDetail(itemData: ItemData): void {
+		// Toggle if same item is clicked again
+		if (this.selectedItem && this.selectedItem.path === itemData.path) {
+			this.selectedItem = null;
+		} else {
+			this.selectedItem = itemData;
+		}
+		this.render();
+	}
+
+	/**
+	 * Close item detail panel
+	 */
+	private closeItemDetail(): void {
+		this.selectedItem = null;
+		this.render();
+	}
+
+	/**
+	 * Render detail panel with item markdown
+	 */
+	private async renderDetailPanel(container: HTMLElement): Promise<void> {
+		if (!this.selectedItem) return;
+
+		const detailPanel = container.createDiv({ cls: 'item-detail-panel' });
+
+		// Content area (scrollable)
+		const contentEl = detailPanel.createDiv({ cls: 'detail-panel-content' });
+
+		// Item image
+		if (this.selectedItem.imageUrl) {
+			const imgContainer = contentEl.createDiv({ cls: 'detail-item-image-container' });
+			const imgEl = imgContainer.createEl('img', { cls: 'detail-item-image' });
+
+			// Handle both online URLs and local file paths
+			if (this.selectedItem.imageUrl.startsWith('http://') || this.selectedItem.imageUrl.startsWith('https://')) {
+				imgEl.src = this.selectedItem.imageUrl;
+			} else {
+				const resourcePath = this.app.vault.adapter.getResourcePath(this.selectedItem.imageUrl);
+				imgEl.src = resourcePath;
+			}
+
+			imgEl.alt = this.selectedItem.name;
+
+			// Handle image load errors gracefully
+			imgEl.onerror = () => {
+				imgContainer.addClass('detail-image-error');
+				imgContainer.empty();
+				imgContainer.createDiv({
+					cls: 'detail-image-placeholder',
+					text: '🖼️'
+				});
+			};
+		}
+
+		// Item name
+		contentEl.createEl('h1', {
+			text: this.selectedItem.name,
+			cls: 'detail-item-name'
+		});
+
+		// Get inventory item for price info
+		const invItem = this.shopData?.inventory.find(
+			item => item.itemData?.path === this.selectedItem?.path
+		);
+
+		// Item metadata section
+		const metaSection = contentEl.createDiv({ cls: 'detail-meta-section' });
+
+		// Price
+		if (invItem) {
+			const priceText = this.plugin.priceCalculator.formatCurrency(invItem.calculatedPrice);
+			metaSection.createDiv({
+				cls: 'detail-item-price',
+				text: priceText
+			});
+		}
+
+		// Rarity badge
+		if (this.selectedItem.rarity) {
+			const rarityBadge = metaSection.createDiv({
+				cls: `detail-item-rarity rarity-${this.selectedItem.rarity.toLowerCase().replace(/\s+/g, '-')}`
+			});
+			rarityBadge.textContent = this.selectedItem.rarity;
+		}
+
+		// Description
+		if (this.selectedItem.description) {
+			contentEl.createDiv({
+				cls: 'detail-item-description',
+				text: this.selectedItem.description
+			});
+		}
+
+		// Divider
+		contentEl.createEl('hr', { cls: 'detail-divider' });
+
+		// Fetch and render full markdown
+		const itemFile = this.app.vault.getAbstractFileByPath(this.selectedItem.path);
+		if (itemFile instanceof TFile) {
+			const markdownContent = await this.app.vault.read(itemFile);
+
+			// Create markdown container
+			const markdownContainer = contentEl.createDiv({ cls: 'detail-markdown-content' });
+
+			// Render markdown using Obsidian's renderer
+			await MarkdownRenderer.render(
+				this.app,
+				markdownContent,
+				markdownContainer,
+				this.selectedItem.path,
+				this
+			);
+		} else {
+			contentEl.createDiv({
+				text: 'Could not load additional details.',
+				cls: 'detail-panel-error'
+			});
+		}
 	}
 
 	/**

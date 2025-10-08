@@ -111,6 +111,7 @@ export class ItemParser {
 				basePrice: fm.base_price,
 				rarity: fm.rarity,
 				description: fm.description,
+				imageUrl: fm.imageUrl || fm.image_url,
 				metadata: { ...fm }
 			};
 

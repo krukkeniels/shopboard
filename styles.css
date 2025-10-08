@@ -1,74 +1,984 @@
-/* ==========================================================================
-   Shopboard Plugin - Main Styles
-   Fantasy-themed D&D shop display for Obsidian
-   ========================================================================== */
+/* Shopboard Plugin - Main Stylesheet */
 
-/* CSS Variables - Theme Override Support */
-:root {
-	--shopboard-theme-override: 1; /* Set to 0 to disable theme override */
+/* Core Display Styles */
+@import './display.css';
+
+/* DM Control Panel Styles */
+@import './dm-control.css';
+
+/* Template Modal Styles */
+@import './template-modal.css';
+
+/* Shop Type Themes */
+@import './themes/magic-shop.css';
+@import './themes/blacksmith.css';
+@import './themes/general-store.css';
+@import './themes/alchemist.css';
+
+/* Global Plugin Styles */
+
+.shopboard-container {
+	font-family: var(--font-text);
+	color: var(--text-normal);
 }
 
-/* Conditional theme override */
-body.shopboard-theme-override {
-	--shopboard-theme-override: 1;
+/* Common animations */
+@keyframes shopboard-fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
 }
 
-body.shopboard-theme-adapt {
-	--shopboard-theme-override: 0;
+@keyframes shopboard-slideIn {
+	from {
+		transform: translateY(-10px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
 }
 
-/* ==========================================================================
-   Import Component Styles
-   ========================================================================== */
-
-/* Base display styles */
-@import url('./styles/display.css');
-
-/* DM Control Panel styles */
-@import url('./styles/dm-control.css');
-
-/* Shop-specific themes */
-@import url('./styles/themes/magic-shop.css');
-@import url('./styles/themes/blacksmith.css');
-@import url('./styles/themes/general-store.css');
-@import url('./styles/themes/alchemist.css');
-
-/* ==========================================================================
-   Plugin-wide Variables
-   ========================================================================== */
-
-.shopboard-display-container {
-	--shopboard-spacing-xs: 0.25rem;
-	--shopboard-spacing-sm: 0.5rem;
-	--shopboard-spacing-md: 1rem;
-	--shopboard-spacing-lg: 1.5rem;
-	--shopboard-spacing-xl: 2rem;
-
-	--shopboard-radius-sm: 8px;
-	--shopboard-radius-md: 12px;
-	--shopboard-radius-lg: 16px;
-
-	--shopboard-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-	--shopboard-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
-	--shopboard-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-
-/* ==========================================================================
-   Utility Classes
-   ========================================================================== */
-
+/* Utility classes */
 .shopboard-hidden {
 	display: none !important;
 }
 
-.shopboard-fade-in {
-	animation: shopboard-fadeIn 0.3s ease-in;
+.shopboard-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 40px;
+	color: var(--text-muted);
 }
 
-@keyframes shopboard-fadeIn {
+.shopboard-error {
+	padding: 20px;
+	background: var(--background-modifier-error);
+	border-radius: 6px;
+	color: var(--text-error);
+	margin: 10px 0;
+}
+
+/* Accessibility */
+.shopboard-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
+}
+
+/* Responsive behavior */
+@media (max-width: 768px) {
+	.shopboard-container {
+		font-size: 0.95em;
+	}
+}
+
+/* ==========================================================================
+   Shop Display - Base Styles
+   ========================================================================== */
+
+/* Container */
+.shopboard-display-container {
+	width: 100%;
+	height: 100%;
+	overflow-y: auto;
+	background: var(--background-primary);
+	padding: 2rem;
+}
+
+/* Main display wrapper */
+.shopboard-display {
+	max-width: 1400px;
+	margin: 0 auto;
+	font-family: var(--font-interface);
+}
+
+/* ==========================================================================
+   Shop Header
+   ========================================================================== */
+
+.shop-header {
+	text-align: center;
+	margin-bottom: 3rem;
+	padding: 2rem;
+	border-bottom: 3px double var(--background-modifier-border);
+	position: relative;
+}
+
+.shop-name {
+	font-size: 3rem;
+	font-weight: 700;
+	margin: 0 0 1rem 0;
+	color: var(--text-title-h1);
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+	font-family: var(--font-text);
+	letter-spacing: 0.05em;
+}
+
+.shop-type-badge {
+	display: inline-block;
+	padding: 0.5rem 1.5rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: 20px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	margin-top: 0.5rem;
+}
+
+.price-modifier-badge {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	padding: 0.5rem 1rem;
+	background: var(--background-modifier-warning);
+	color: var(--text-normal);
+	border-radius: 8px;
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+/* ==========================================================================
+   Inventory Grid
+   ========================================================================== */
+
+.shop-inventory {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 1.5rem;
+	padding: 1rem;
+}
+
+.inventory-empty {
+	grid-column: 1 / -1;
+	text-align: center;
+	padding: 3rem;
+	color: var(--text-muted);
+	font-size: 1.1rem;
+	font-style: italic;
+}
+
+/* ==========================================================================
+   Inventory Items
+   ========================================================================== */
+
+.inventory-item {
+	background: var(--background-secondary);
+	border: 2px solid var(--background-modifier-border);
+	border-radius: 12px;
+	padding: 1.5rem;
+	transition: all 0.3s ease;
+	position: relative;
+	overflow: hidden;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-item:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+	border-color: var(--interactive-accent);
+}
+
+.inventory-item.inventory-item-selected {
+	border-color: var(--interactive-accent);
+	border-width: 5px;
+	animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+	0%, 100% {
+		box-shadow:
+			0 0 15px var(--interactive-accent),
+			0 0 30px var(--interactive-accent),
+			0 0 45px var(--interactive-accent),
+			0 4px 16px rgba(0, 0, 0, 0.3);
+	}
+	50% {
+		box-shadow:
+			0 0 25px var(--interactive-accent),
+			0 0 50px var(--interactive-accent),
+			0 0 75px var(--interactive-accent),
+			0 6px 20px rgba(0, 0, 0, 0.4);
+	}
+}
+
+.item-image-container {
+	width: 100%;
+	height: 200px;
+	margin-bottom: 1rem;
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--background-primary-alt);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.item-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 0.3s ease;
+}
+
+.item-image:hover {
+	transform: scale(1.05);
+}
+
+.item-image-placeholder {
+	font-size: 4rem;
+	opacity: 0.3;
+}
+
+.item-image-error {
+	background: var(--background-modifier-error-hover);
+}
+
+.item-name {
+	font-size: 1.4rem;
+	font-weight: 700;
+	margin-bottom: 0.75rem;
+	color: var(--text-title-h2);
+	line-height: 1.3;
+}
+
+.item-description {
+	font-size: 0.95rem;
+	color: var(--text-muted);
+	margin-bottom: 1rem;
+	line-height: 1.6;
+	min-height: 3em;
+}
+
+.item-price {
+	font-size: 1.6rem;
+	font-weight: 700;
+	color: var(--interactive-accent);
+	margin-bottom: 0.5rem;
+	font-family: var(--font-monospace);
+}
+
+.item-quantity {
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+.item-rarity-badge {
+	position: absolute;
+	top: 0.75rem;
+	right: 0.75rem;
+	padding: 0.25rem 0.75rem;
+	border-radius: 12px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: capitalize;
+	background: var(--background-modifier-border);
+	color: var(--text-normal);
+}
+
+/* ==========================================================================
+   Missing Items
+   ========================================================================== */
+
+.inventory-item.item-missing {
+	opacity: 0.7;
+	border-style: dashed;
+	background: var(--background-primary-alt);
+}
+
+.item-warning {
+	color: var(--text-warning);
+	font-size: 0.85rem;
+	margin-bottom: 0.5rem;
+	font-weight: 500;
+}
+
+/* ==========================================================================
+   Empty State
+   ========================================================================== */
+
+.shopboard-empty {
+	text-align: center;
+	padding: 4rem 2rem;
+	color: var(--text-muted);
+}
+
+.shopboard-empty h2 {
+	font-size: 2rem;
+	margin-bottom: 1rem;
+	color: var(--text-normal);
+}
+
+.shopboard-empty p {
+	font-size: 1.1rem;
+	line-height: 1.6;
+}
+
+/* ==========================================================================
+   Error State
+   ========================================================================== */
+
+.shopboard-error {
+	text-align: center;
+	padding: 4rem 2rem;
+	color: var(--text-error);
+}
+
+.shopboard-error h2 {
+	font-size: 2rem;
+	margin-bottom: 1rem;
+}
+
+.shopboard-error p {
+	font-size: 1.1rem;
+	line-height: 1.6;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 768px) {
+	.shop-inventory {
+		grid-template-columns: 1fr;
+	}
+
+	.shop-name {
+		font-size: 2rem;
+	}
+
+	.price-modifier-badge {
+		position: static;
+		display: block;
+		margin-top: 1rem;
+		width: fit-content;
+		margin-left: auto;
+		margin-right: auto;
+	}
+}
+
+/* ==========================================================================
+   Split View Layout
+   ========================================================================== */
+
+.shopboard-split-view {
+	display: flex;
+	gap: 1rem;
+	height: 100%;
+}
+
+.shopboard-split-view .main-display {
+	flex: 0 0 calc(80vw - 3rem);
+	overflow-y: auto;
+}
+
+/* ==========================================================================
+   Detail Panel
+   ========================================================================== */
+
+.item-detail-panel {
+	flex: 0 0 20vw;
+	background: var(--background-secondary);
+	border-left: 2px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+	animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+.detail-panel-content {
+	flex: 1;
+	overflow-y: auto;
+	padding: 1.5rem;
+	line-height: 1.6;
+}
+
+/* Detail panel item info */
+.detail-item-image-container {
+	width: 100%;
+	aspect-ratio: 1;
+	margin-bottom: 1rem;
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--background-primary-alt);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.detail-item-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.detail-image-placeholder {
+	font-size: 4rem;
+	opacity: 0.3;
+}
+
+.detail-image-error {
+	background: var(--background-modifier-error-hover);
+}
+
+.detail-item-name {
+	font-size: 1.8rem;
+	font-weight: 700;
+	margin: 1rem 0 0.75rem 0;
+	color: var(--text-title-h1);
+	line-height: 1.2;
+}
+
+.detail-meta-section {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 1rem;
+	flex-wrap: wrap;
+}
+
+.detail-item-price {
+	font-size: 1.8rem;
+	font-weight: 700;
+	color: var(--interactive-accent);
+	font-family: var(--font-monospace);
+}
+
+.detail-item-rarity {
+	padding: 0.4rem 1rem;
+	border-radius: 16px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: white;
+}
+
+/* Rarity colors for detail panel */
+.detail-item-rarity.rarity-common {
+	background: #9e9e9e;
+}
+
+.detail-item-rarity.rarity-uncommon {
+	background: #4caf50;
+}
+
+.detail-item-rarity.rarity-rare {
+	background: #2196f3;
+}
+
+.detail-item-rarity.rarity-very-rare {
+	background: #9c27b0;
+}
+
+.detail-item-rarity.rarity-legendary {
+	background: #ff9800;
+}
+
+.detail-item-rarity.rarity-artifact {
+	background: #f44336;
+}
+
+.detail-item-description {
+	font-size: 1.1rem;
+	color: var(--text-muted);
+	margin-bottom: 1rem;
+	line-height: 1.6;
+	font-style: italic;
+}
+
+.detail-divider {
+	border: none;
+	border-top: 2px solid var(--background-modifier-border);
+	margin: 1.5rem 0;
+}
+
+.detail-markdown-content {
+	margin-top: 1rem;
+}
+
+.detail-panel-content h1,
+.detail-panel-content h2,
+.detail-panel-content h3,
+.detail-panel-content h4 {
+	margin-top: 1.5rem;
+	margin-bottom: 0.5rem;
+	color: var(--text-normal);
+}
+
+.detail-panel-content h1 {
+	font-size: 1.5rem;
+}
+
+.detail-panel-content h2 {
+	font-size: 1.3rem;
+}
+
+.detail-panel-content h3 {
+	font-size: 1.1rem;
+}
+
+.detail-panel-content p {
+	margin-bottom: 1rem;
+}
+
+.detail-panel-content ul,
+.detail-panel-content ol {
+	margin-bottom: 1rem;
+	padding-left: 1.5rem;
+}
+
+.detail-panel-content li {
+	margin-bottom: 0.25rem;
+}
+
+.detail-panel-content strong {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.detail-panel-content em {
+	font-style: italic;
+	color: var(--text-muted);
+}
+
+.detail-panel-content code {
+	background: var(--background-primary);
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-family: var(--font-monospace);
+	font-size: 0.9em;
+}
+
+.detail-panel-error {
+	color: var(--text-error);
+	text-align: center;
+	padding: 2rem;
+	font-style: italic;
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+	.shopboard-display-container {
+		padding: 0;
+	}
+
+	.inventory-item {
+		break-inside: avoid;
+		page-break-inside: avoid;
+	}
+
+	.inventory-item:hover {
+		transform: none;
+		box-shadow: none;
+	}
+
+	.item-detail-panel {
+		display: none;
+	}
+}
+
+/* ==========================================================================
+   DM Control Panel - Styles
+   ========================================================================== */
+
+/* Container */
+.shopboard-dm-control-container {
+	width: 100%;
+	height: 100%;
+	overflow-y: auto;
+	background: var(--background-primary);
+}
+
+/* Main control wrapper */
+.shopboard-dm-control {
+	padding: 1rem;
+	font-family: var(--font-interface);
+}
+
+/* ==========================================================================
+   Empty State
+   ========================================================================== */
+
+.dm-control-empty {
+	text-align: center;
+	padding: 2rem 1rem;
+	color: var(--text-muted);
+}
+
+.dm-control-empty h3 {
+	margin: 0 0 0.5rem 0;
+	color: var(--text-normal);
+}
+
+.dm-control-empty p {
+	margin: 0;
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+/* ==========================================================================
+   Control Header
+   ========================================================================== */
+
+.control-header {
+	padding: 1rem;
+	background: var(--background-secondary);
+	border-radius: 8px;
+	margin-bottom: 1rem;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.control-header h3 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-muted);
+}
+
+.control-header .shop-name {
+	font-size: 1.2rem;
+	font-weight: 700;
+	color: var(--text-title-h1);
+	margin-bottom: 0.5rem;
+}
+
+.control-header .shop-type-label {
+	display: inline-block;
+	padding: 0.25rem 0.75rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: 12px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   Inventory Controls
+   ========================================================================== */
+
+.inventory-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.inventory-controls .inventory-empty {
+	text-align: center;
+	padding: 2rem 1rem;
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+/* ==========================================================================
+   Control Item
+   ========================================================================== */
+
+.control-item {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 1rem;
+	transition: all 0.2s ease;
+}
+
+.control-item:hover {
+	border-color: var(--interactive-accent);
+}
+
+.control-item.control-item-selected {
+	background: var(--interactive-accent-hover);
+	border-color: var(--interactive-accent);
+	border-width: 2px;
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.control-item.item-missing {
+	opacity: 0.6;
+	border-color: var(--background-modifier-error);
+}
+
+/* ==========================================================================
+   Item Info
+   ========================================================================== */
+
+.item-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	margin-bottom: 0.75rem;
+}
+
+.item-info .item-name {
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.item-info .item-stock {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+}
+
+.item-info .item-stock.out-of-stock {
+	color: var(--text-error);
+	font-weight: 600;
+}
+
+.item-info .item-price-small {
+	font-size: 0.85rem;
+	color: var(--text-accent);
+	font-weight: 500;
+}
+
+.item-info .item-warning {
+	font-size: 0.8rem;
+	color: var(--text-error);
+}
+
+/* ==========================================================================
+   Action Controls
+   ========================================================================== */
+
+.action-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.info-button {
+	width: 100%;
+	padding: 0.5rem 1rem;
+	background: var(--background-modifier-info);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+}
+
+.info-button:hover {
+	background: var(--interactive-hover);
+	border-color: var(--interactive-accent);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.info-button:active {
+	transform: translateY(0);
+}
+
+/* ==========================================================================
+   Purchase Controls
+   ========================================================================== */
+
+.purchase-controls {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.quantity-input {
+	flex: 0 0 80px;
+	padding: 0.5rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9rem;
+	font-family: var(--font-interface);
+	text-align: center;
+	transition: border-color 0.2s ease;
+}
+
+.quantity-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.quantity-input:hover {
+	border-color: var(--interactive-hover);
+}
+
+.record-sale-button {
+	flex: 1;
+	padding: 0.5rem 1rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: 6px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+}
+
+.record-sale-button:hover:not(:disabled) {
+	background: var(--interactive-accent-hover);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.record-sale-button:active:not(:disabled) {
+	transform: translateY(0);
+}
+
+.record-sale-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+/* Narrow sidebar */
+@media (max-width: 400px) {
+	.shopboard-dm-control {
+		padding: 0.5rem;
+	}
+
+	.control-item {
+		padding: 0.75rem;
+	}
+
+	.purchase-controls {
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.quantity-input {
+		flex: 1;
+		width: 100%;
+	}
+
+	.record-sale-button {
+		width: 100%;
+	}
+}
+
+/* Very narrow */
+@media (max-width: 300px) {
+	.control-header .shop-name {
+		font-size: 1rem;
+	}
+
+	.item-info .item-name {
+		font-size: 0.9rem;
+	}
+}
+
+/* Template Selection Modal Styles */
+
+.shopboard-template-modal .modal-content {
+	min-width: 500px;
+	max-width: 700px;
+}
+
+.shopboard-template-modal .modal-button-container {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 20px;
+	padding-top: 15px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.shopboard-template-modal button {
+	padding: 8px 16px;
+	border-radius: 4px;
+	cursor: pointer;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--interactive-normal);
+	color: var(--text-normal);
+}
+
+.shopboard-template-modal button:hover {
+	background: var(--interactive-hover);
+}
+
+.shopboard-template-modal button.mod-cta {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.shopboard-template-modal button.mod-cta:hover {
+	background: var(--interactive-accent-hover);
+}
+
+/* Template Preview */
+
+.template-preview-container {
+	margin-top: 20px;
+	padding: 15px;
+	background: var(--background-secondary);
+	border-radius: 6px;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.template-preview-title {
+	margin: 0 0 10px 0;
+	font-size: 1.1em;
+	color: var(--text-normal);
+}
+
+.template-preview-content {
+	min-height: 150px;
+}
+
+.template-preview-empty {
+	text-align: center;
+	color: var(--text-muted);
+	font-style: italic;
+	padding: 40px 20px;
+}
+
+.template-preview {
+	animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
 	from {
 		opacity: 0;
-		transform: translateY(-10px);
+		transform: translateY(-5px);
 	}
 	to {
 		opacity: 1;
@@ -76,77 +986,614 @@ body.shopboard-theme-adapt {
 	}
 }
 
-/* ==========================================================================
-   Scrollbar Styling (Optional Enhancement)
-   ========================================================================== */
-
-.shopboard-display-container::-webkit-scrollbar {
-	width: 10px;
+.preview-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 10px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.shopboard-display-container::-webkit-scrollbar-track {
+.preview-header h4 {
+	margin: 0;
+	font-size: 1.2em;
+	color: var(--text-normal);
+}
+
+.preview-shop-type {
+	font-size: 0.9em;
+	color: var(--text-muted);
+	background: var(--background-primary);
+	padding: 4px 10px;
+	border-radius: 4px;
+}
+
+.preview-description {
+	color: var(--text-muted);
+	font-style: italic;
+	margin: 10px 0;
+	line-height: 1.5;
+}
+
+.preview-details {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+	margin: 15px 0;
+	padding: 10px;
+	background: var(--background-primary);
+	border-radius: 4px;
+}
+
+.preview-detail {
+	display: flex;
+	gap: 5px;
+}
+
+.preview-label {
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.preview-value {
+	color: var(--text-normal);
+}
+
+.preview-inventory {
+	margin-top: 15px;
+}
+
+.preview-inventory h5 {
+	margin: 0 0 8px 0;
+	font-size: 1em;
+	color: var(--text-normal);
+}
+
+.preview-inventory ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.preview-inventory li {
+	padding: 6px 10px;
+	margin: 4px 0;
+	background: var(--background-primary);
+	border-radius: 4px;
+	border-left: 3px solid var(--interactive-accent);
+	color: var(--text-normal);
+}
+
+.preview-inventory li em {
+	color: var(--text-muted);
+}
+
+.preview-quantity {
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+/* Settings adjustments */
+
+.shopboard-template-modal .setting-item {
+	border: none;
+	padding: 10px 0;
+}
+
+.shopboard-template-modal .setting-item-info {
+	flex-grow: 1;
+}
+
+.shopboard-template-modal .setting-item-name {
+	font-weight: 600;
+	margin-bottom: 4px;
+}
+
+.shopboard-template-modal .setting-item-description {
+	font-size: 0.9em;
+	color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Magic Shop Theme - Mystical and Arcane
+   ========================================================================== */
+
+.shop-type-magic_shop {
+	--theme-primary: #7c3aed;
+	--theme-secondary: #a855f7;
+	--theme-accent: #c084fc;
+	--theme-background: rgba(124, 58, 237, 0.05);
+	--theme-border: rgba(124, 58, 237, 0.3);
+}
+
+/* Header styling */
+.shop-type-magic_shop .shop-header {
+	background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+	border-bottom-color: var(--theme-border);
+	position: relative;
+}
+
+.shop-type-magic_shop .shop-header::before {
+	content: '✦';
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	font-size: 2rem;
+	color: var(--theme-secondary);
+	opacity: 0.5;
+}
+
+.shop-type-magic_shop .shop-header::after {
+	content: '✦';
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	font-size: 2rem;
+	color: var(--theme-secondary);
+	opacity: 0.5;
+}
+
+.shop-type-magic_shop .shop-name {
+	color: var(--theme-primary);
+	text-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+}
+
+.shop-type-magic_shop .shop-type-badge {
+	background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+	box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+
+/* Inventory items */
+.shop-type-magic_shop .inventory-item {
+	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(124, 58, 237, 0.03) 100%);
+	border-color: var(--theme-border);
+	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+}
+
+.shop-type-magic_shop .inventory-item:hover {
+	border-color: var(--theme-secondary);
+	box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(124, 58, 237, 0.08) 100%);
+}
+
+.shop-type-magic_shop .inventory-item::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: linear-gradient(90deg, transparent, var(--theme-secondary), transparent);
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+
+.shop-type-magic_shop .inventory-item:hover::before {
+	opacity: 1;
+}
+
+.shop-type-magic_shop .item-name {
+	color: var(--theme-primary);
+}
+
+.shop-type-magic_shop .item-price {
+	color: var(--theme-secondary);
+	text-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+}
+
+/* Rarity badges for magic shop */
+.shop-type-magic_shop .item-rarity-badge {
+	background: var(--theme-primary);
+	color: white;
+	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+/* Mystical glow effect */
+.shop-type-magic_shop .shop-inventory {
+	position: relative;
+}
+
+.shop-type-magic_shop .shop-inventory::before {
+	content: '';
+	position: absolute;
+	top: -20px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 200px;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, var(--theme-secondary), transparent);
+	opacity: 0.3;
+}
+
+/* ==========================================================================
+   Blacksmith Theme - Forge and Fire
+   ========================================================================== */
+
+.shop-type-blacksmith {
+	--theme-primary: #dc2626;
+	--theme-secondary: #ea580c;
+	--theme-accent: #f97316;
+	--theme-background: rgba(220, 38, 38, 0.05);
+	--theme-border: rgba(220, 38, 38, 0.3);
+}
+
+/* Header styling */
+.shop-type-blacksmith .shop-header {
+	background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(234, 88, 12, 0.1) 100%);
+	border-bottom: 3px solid var(--theme-border);
+	border-bottom-style: solid;
+}
+
+.shop-type-blacksmith .shop-header::before {
+	content: '⚒';
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	font-size: 2.5rem;
+	color: var(--theme-primary);
+	opacity: 0.4;
+}
+
+.shop-type-blacksmith .shop-name {
+	color: var(--theme-primary);
+	font-weight: 800;
+	text-shadow: 2px 2px 0 rgba(220, 38, 38, 0.2);
+}
+
+.shop-type-blacksmith .shop-type-badge {
+	background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+	box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+}
+
+/* Inventory items */
+.shop-type-blacksmith .inventory-item {
 	background: var(--background-secondary);
-	border-radius: 5px;
+	border: 3px solid var(--theme-border);
+	border-left-width: 6px;
+	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15),
+				inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.shopboard-display-container::-webkit-scrollbar-thumb {
-	background: var(--background-modifier-border);
-	border-radius: 5px;
+.shop-type-blacksmith .inventory-item:hover {
+	border-color: var(--theme-secondary);
+	box-shadow: 0 8px 24px rgba(234, 88, 12, 0.3),
+				inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	transform: translateY(-4px);
 }
 
-.shopboard-display-container::-webkit-scrollbar-thumb:hover {
-	background: var(--interactive-accent);
+.shop-type-blacksmith .item-name {
+	color: var(--theme-primary);
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.shop-type-blacksmith .item-price {
+	color: var(--theme-secondary);
+	font-weight: 800;
+}
+
+/* Metallic texture effect */
+.shop-type-blacksmith .inventory-item::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(90deg,
+		transparent 0%,
+		var(--theme-accent) 50%,
+		transparent 100%);
+	opacity: 0.3;
+}
+
+.shop-type-blacksmith .item-rarity-badge {
+	background: var(--theme-primary);
+	color: white;
+	font-weight: 700;
+	text-transform: uppercase;
+	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+}
+
+/* Forge glow effect on hover */
+.shop-type-blacksmith .inventory-item:hover::after {
+	opacity: 0.6;
+	animation: forge-glow 2s ease-in-out infinite;
+}
+
+@keyframes forge-glow {
+	0%, 100% { opacity: 0.3; }
+	50% { opacity: 0.8; }
 }
 
 /* ==========================================================================
-   Accessibility Enhancements
+   General Store Theme - Rustic and Welcoming
    ========================================================================== */
 
-.inventory-item:focus-within {
-	outline: 2px solid var(--interactive-accent);
-	outline-offset: 2px;
+.shop-type-general_store {
+	--theme-primary: #92400e;
+	--theme-secondary: #b45309;
+	--theme-accent: #d97706;
+	--theme-background: rgba(146, 64, 14, 0.05);
+	--theme-border: rgba(146, 64, 14, 0.3);
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-	.inventory-item {
-		border-width: 3px;
-	}
-
-	.shop-header {
-		border-bottom-width: 4px;
-	}
+/* Header styling */
+.shop-type-general_store .shop-header {
+	background: linear-gradient(135deg, rgba(146, 64, 14, 0.08) 0%, rgba(180, 83, 9, 0.08) 100%);
+	border-bottom: 3px solid var(--theme-border);
 }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-	.inventory-item,
-	.inventory-item::before,
-	.inventory-item::after {
-		animation: none !important;
-		transition: none !important;
-	}
+.shop-type-general_store .shop-header::before {
+	content: '⚖';
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	font-size: 2rem;
+	color: var(--theme-primary);
+	opacity: 0.4;
+}
 
-	.inventory-item:hover {
-		transform: none;
-	}
+.shop-type-general_store .shop-name {
+	color: var(--theme-primary);
+	font-family: var(--font-text);
+}
+
+.shop-type-general_store .shop-type-badge {
+	background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+	box-shadow: 0 2px 8px rgba(146, 64, 14, 0.3);
+}
+
+/* Inventory items */
+.shop-type-general_store .inventory-item {
+	background: var(--background-secondary);
+	border: 2px solid var(--theme-border);
+	box-shadow: 0 2px 6px rgba(146, 64, 14, 0.1);
+}
+
+.shop-type-general_store .inventory-item:hover {
+	border-color: var(--theme-secondary);
+	box-shadow: 0 6px 16px rgba(146, 64, 14, 0.2);
+}
+
+.shop-type-general_store .item-name {
+	color: var(--theme-primary);
+	font-weight: 600;
+}
+
+.shop-type-general_store .item-price {
+	color: var(--theme-secondary);
+	font-weight: 700;
+}
+
+/* Wood texture effect */
+.shop-type-general_store .inventory-item::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background:
+		repeating-linear-gradient(
+			90deg,
+			transparent,
+			transparent 2px,
+			rgba(146, 64, 14, 0.02) 2px,
+			rgba(146, 64, 14, 0.02) 4px
+		);
+	pointer-events: none;
+	border-radius: 12px;
+}
+
+.shop-type-general_store .item-rarity-badge {
+	background: var(--theme-primary);
+	color: #fef3c7;
+	box-shadow: 0 2px 6px rgba(146, 64, 14, 0.3);
+}
+
+/* Simple, welcoming aesthetic */
+.shop-type-general_store .shop-inventory {
+	padding: 1.5rem;
+}
+
+/* Warm lighting effect */
+.shop-type-general_store .inventory-item:hover {
+	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(217, 119, 6, 0.05) 100%);
 }
 
 /* ==========================================================================
-   Print Optimization
+   Alchemist Theme - Potions and Mystical Science
    ========================================================================== */
 
-@media print {
-	.shopboard-display-container {
-		background: white !important;
-		color: black !important;
-	}
-
-	.shop-header {
-		page-break-after: avoid;
-	}
-
-	.inventory-item {
-		page-break-inside: avoid;
-	}
+.shop-type-alchemist {
+	--theme-primary: #059669;
+	--theme-secondary: #10b981;
+	--theme-accent: #34d399;
+	--theme-alt: #8b5cf6;
+	--theme-background: rgba(5, 150, 105, 0.05);
+	--theme-border: rgba(5, 150, 105, 0.3);
 }
+
+/* Header styling */
+.shop-type-alchemist .shop-header {
+	background: linear-gradient(135deg, rgba(5, 150, 105, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+	border-bottom: 3px double var(--theme-border);
+}
+
+.shop-type-alchemist .shop-header::before {
+	content: '⚗';
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	font-size: 2.5rem;
+	color: var(--theme-primary);
+	opacity: 0.4;
+}
+
+.shop-type-alchemist .shop-header::after {
+	content: '🧪';
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	font-size: 2rem;
+	opacity: 0.4;
+}
+
+.shop-type-alchemist .shop-name {
+	color: var(--theme-primary);
+	font-style: italic;
+}
+
+.shop-type-alchemist .shop-type-badge {
+	background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-alt) 100%);
+	box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+/* Inventory items */
+.shop-type-alchemist .inventory-item {
+	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(5, 150, 105, 0.03) 100%);
+	border: 2px solid var(--theme-border);
+	box-shadow: 0 2px 8px rgba(5, 150, 105, 0.1);
+	position: relative;
+	overflow: hidden;
+}
+
+.shop-type-alchemist .inventory-item:hover {
+	border-color: var(--theme-secondary);
+	box-shadow: 0 8px 24px rgba(5, 150, 105, 0.25),
+				0 0 20px rgba(139, 92, 246, 0.1);
+}
+
+/* Bubble effect */
+.shop-type-alchemist .inventory-item::before {
+	content: '';
+	position: absolute;
+	bottom: -50%;
+	left: -10%;
+	width: 120%;
+	height: 120%;
+	background: radial-gradient(circle at 30% 50%,
+		rgba(5, 150, 105, 0.1) 0%,
+		rgba(139, 92, 246, 0.05) 50%,
+		transparent 70%);
+	opacity: 0;
+	transition: all 0.5s ease;
+}
+
+.shop-type-alchemist .inventory-item:hover::before {
+	bottom: -20%;
+	opacity: 1;
+}
+
+.shop-type-alchemist .item-name {
+	color: var(--theme-primary);
+	font-weight: 600;
+}
+
+.shop-type-alchemist .item-price {
+	color: var(--theme-secondary);
+	text-shadow: 0 0 10px rgba(5, 150, 105, 0.2);
+}
+
+/* Potion glow effect */
+.shop-type-alchemist .item-rarity-badge {
+	background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+	color: white;
+	box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
+}
+
+/* Bubbling animation on hover */
+.shop-type-alchemist .inventory-item:hover {
+	animation: gentle-bubble 3s ease-in-out infinite;
+}
+
+@keyframes gentle-bubble {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-2px); }
+}
+
+/* Smoke effect */
+.shop-type-alchemist .shop-inventory::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 100px;
+	background: linear-gradient(180deg,
+		rgba(5, 150, 105, 0.05) 0%,
+		transparent 100%);
+	pointer-events: none;
+	opacity: 0.5;
+}
+
+/* ==========================================================================
+   Rarity Colors - Applied across all themes
+   Higher specificity to override theme borders
+   ========================================================================== */
+
+/* Common rarity */
+.shopboard-display .inventory-item.rarity-common {
+	border-left: 4px solid #9e9e9e !important;
+}
+
+.shopboard-display .inventory-item.rarity-common .item-rarity-badge {
+	background: #9e9e9e !important;
+	color: white !important;
+}
+
+/* Uncommon rarity */
+.shopboard-display .inventory-item.rarity-uncommon {
+	border-left: 4px solid #4caf50 !important;
+}
+
+.shopboard-display .inventory-item.rarity-uncommon .item-rarity-badge {
+	background: #4caf50 !important;
+	color: white !important;
+}
+
+/* Rare rarity */
+.shopboard-display .inventory-item.rarity-rare {
+	border-left: 4px solid #2196f3 !important;
+}
+
+.shopboard-display .inventory-item.rarity-rare .item-rarity-badge {
+	background: #2196f3 !important;
+	color: white !important;
+}
+
+/* Very Rare rarity */
+.shopboard-display .inventory-item.rarity-very-rare {
+	border-left: 4px solid #9c27b0 !important;
+}
+
+.shopboard-display .inventory-item.rarity-very-rare .item-rarity-badge {
+	background: #9c27b0 !important;
+	color: white !important;
+}
+
+/* Legendary rarity */
+.shopboard-display .inventory-item.rarity-legendary {
+	border-left: 4px solid #ff9800 !important;
+}
+
+.shopboard-display .inventory-item.rarity-legendary .item-rarity-badge {
+	background: #ff9800 !important;
+	color: white !important;
+}
+
+/* Artifact rarity */
+.shopboard-display .inventory-item.rarity-artifact {
+	border-left: 4px solid #f44336 !important;
+}
+
+.shopboard-display .inventory-item.rarity-artifact .item-rarity-badge {
+	background: #f44336 !important;
+	color: white !important;
+}
+
