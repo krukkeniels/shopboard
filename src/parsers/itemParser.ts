@@ -104,6 +104,16 @@ export class ItemParser {
 				return null;
 			}
 
+			// Parse staple_for_shops field
+			let stapleForShops: string[] | undefined = undefined;
+			if (fm.staple_for_shops) {
+				if (Array.isArray(fm.staple_for_shops)) {
+					stapleForShops = fm.staple_for_shops.filter((s: any) => typeof s === 'string');
+				} else if (typeof fm.staple_for_shops === 'string') {
+					stapleForShops = [fm.staple_for_shops];
+				}
+			}
+
 			// Extract item data
 			const itemData: ItemData = {
 				path: file.path,
@@ -112,6 +122,7 @@ export class ItemParser {
 				rarity: fm.rarity,
 				description: fm.description,
 				imageUrl: fm.imageUrl || fm.image_url,
+				stapleForShops: stapleForShops,
 				metadata: { ...fm }
 			};
 
@@ -153,10 +164,21 @@ export class ItemParser {
 	/**
 	 * Get cache statistics
 	 */
-	getCacheStats(): { itemCount: number; lastUpdated: number } {
+	getCacheStats(): { itemCount: number; lastUpdated: number; items: ItemData[] } {
+		// Get unique items (cache has duplicates: one by name, one by path)
+		const uniqueItems = new Map<string, ItemData>();
+
+		for (const [key, item] of this.cache.items.entries()) {
+			// Only use path-based keys to avoid duplicates
+			if (key === item.path) {
+				uniqueItems.set(item.path, item);
+			}
+		}
+
 		return {
-			itemCount: this.cache.items.size,
-			lastUpdated: this.cache.lastUpdated
+			itemCount: uniqueItems.size,
+			lastUpdated: this.cache.lastUpdated,
+			items: Array.from(uniqueItems.values())
 		};
 	}
 }

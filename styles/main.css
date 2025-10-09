@@ -1,21 +1,4 @@
-/* Shopboard Plugin - Main Stylesheet */
-
-/* Core Display Styles */
-@import './display.css';
-
-/* DM Control Panel Styles */
-@import './dm-control.css';
-
-/* Template Modal Styles */
-@import './template-modal.css';
-
-/* Shop Type Themes */
-@import './themes/magic-shop.css';
-@import './themes/blacksmith.css';
-@import './themes/general-store.css';
-@import './themes/alchemist.css';
-
-/* Global Plugin Styles */
+/* Shopboard Plugin - Global Styles */
 
 .shopboard-container {
 	font-family: var(--font-text);

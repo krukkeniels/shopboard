@@ -64,23 +64,25 @@
 }
 
 .shop-type-blacksmith .item-price {
-	color: var(--theme-secondary);
+	color: #ffffff;
 	font-weight: 800;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
 
 /* Metallic texture effect */
 .shop-type-blacksmith .inventory-item::after {
 	content: '';
 	position: absolute;
-	bottom: 0;
-	left: 0;
-	right: 0;
+	bottom: -3px;
+	left: 10%;
+	right: 10%;
 	height: 3px;
 	background: linear-gradient(90deg,
 		transparent 0%,
 		var(--theme-accent) 50%,
 		transparent 100%);
 	opacity: 0.3;
+	transform: none;
 }
 
 .shop-type-blacksmith .item-rarity-badge {

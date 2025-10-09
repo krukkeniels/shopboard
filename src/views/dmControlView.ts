@@ -1,6 +1,8 @@
 import { ItemView, WorkspaceLeaf, TFile, Notice } from 'obsidian';
-import { ShopData, ShopInventoryItem } from '../types';
+import { ShopData, ShopInventoryItem, DisplayMode } from '../types';
 import ShopboardPlugin from '../main';
+import { AddItemModal } from '../modals/addItemModal';
+import { RestockModal } from '../modals/restockModal';
 
 /**
  * View type identifier for DM control panel
@@ -16,6 +18,9 @@ export class DMControlView extends ItemView {
 	private currentShop: ShopData | null = null;
 	private currentShopFile: TFile | null = null;
 	private selectedItemPath: string | null = null;
+	private currentDisplayMode: DisplayMode = 'standard';
+	private modifyDebounceTimer: number | null = null;
+	private isUpdating: boolean = false;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ShopboardPlugin) {
 		super(leaf);
@@ -65,8 +70,21 @@ export class DMControlView extends ItemView {
 		this.registerEvent(
 			this.app.vault.on('modify', async (file) => {
 				if (this.currentShopFile && file.path === this.currentShopFile.path) {
-					// Re-parse and update display
-					await this.syncWithShop(this.currentShopFile);
+					// Skip if we're currently updating to prevent race conditions
+					if (this.isUpdating) {
+						return;
+					}
+
+					// Debounce: wait for file operations to complete
+					if (this.modifyDebounceTimer !== null) {
+						window.clearTimeout(this.modifyDebounceTimer);
+					}
+
+					this.modifyDebounceTimer = window.setTimeout(async () => {
+						// Re-parse and update display
+						await this.syncWithShop(this.currentShopFile!);
+						this.modifyDebounceTimer = null;
+					}, 300);
 				}
 			})
 		);
@@ -83,12 +101,26 @@ export class DMControlView extends ItemView {
 				this.render();
 			})
 		);
+
+		// Listen for display mode change events from display view
+		this.registerEvent(
+			this.app.workspace.on('shopboard:display-mode-changed', (mode: DisplayMode) => {
+				this.currentDisplayMode = mode;
+				this.render();
+			})
+		);
 	}
 
 	/**
 	 * Called when the view is closed
 	 */
 	async onClose(): Promise<void> {
+		// Clean up debounce timer
+		if (this.modifyDebounceTimer !== null) {
+			window.clearTimeout(this.modifyDebounceTimer);
+			this.modifyDebounceTimer = null;
+		}
+
 		// Clean up resources
 		this.currentShop = null;
 		this.currentShopFile = null;
@@ -109,6 +141,12 @@ export class DMControlView extends ItemView {
 				if (shopFile && shopData) {
 					this.currentShopFile = shopFile;
 					this.currentShop = shopData;
+
+					// Sync display mode from display view
+					if ('getDisplayMode' in view) {
+						this.currentDisplayMode = (view as any).getDisplayMode();
+					}
+
 					this.render();
 				}
 			}
@@ -150,6 +188,9 @@ export class DMControlView extends ItemView {
 		// Render control header
 		this.renderControlHeader(controlEl);
 
+		// Render shop actions section
+		this.renderShopActionsSection(controlEl);
+
 		// Render inventory controls
 		this.renderInventoryControls(controlEl);
 	}
@@ -183,6 +224,470 @@ export class DMControlView extends ItemView {
 			cls: 'shop-type-label',
 			text: shopTypeLabel
 		});
+
+		// Price modifier controls
+		this.renderPriceModifierControls(headerEl);
+
+		// Display mode controls
+		this.renderDisplayModeControls(headerEl);
+
+		// Pagination controls
+		this.renderPaginationControls(headerEl);
+	}
+
+	/**
+	 * Render price modifier editing controls
+	 */
+	private renderPriceModifierControls(container: HTMLElement): void {
+		const modifierContainer = container.createDiv({ cls: 'modifier-controls' });
+
+		// Current modifier display
+		const currentModifier = this.currentShop!.priceModifier;
+		const modifierText = currentModifier >= 0 ? `+${currentModifier}%` : `${currentModifier}%`;
+
+		modifierContainer.createEl('label', {
+			text: 'Price Modifier:',
+			cls: 'modifier-label'
+		});
+
+		// Input for new modifier
+		const modifierInput = modifierContainer.createEl('input', {
+			type: 'number',
+			cls: 'modifier-input',
+			value: currentModifier.toString(),
+			attr: {
+				min: '-100',
+				max: '1000',
+				step: '5'
+			}
+		});
+
+		// Update button
+		const updateButton = modifierContainer.createEl('button', {
+			text: 'Update',
+			cls: 'modifier-update-button'
+		});
+
+		updateButton.addEventListener('click', async () => {
+			const newModifier = parseInt(modifierInput.value);
+
+			if (isNaN(newModifier)) {
+				new Notice('Please enter a valid number');
+				return;
+			}
+
+			await this.handleUpdateModifier(newModifier, updateButton);
+		});
+	}
+
+	/**
+	 * Handle price modifier update
+	 */
+	private async handleUpdateModifier(newModifier: number, button: HTMLButtonElement): Promise<void> {
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		// Disable button during processing
+		button.disabled = true;
+		button.textContent = 'Updating...';
+
+		try {
+			await this.plugin.shopModifier.updatePriceModifier(
+				this.currentShopFile!,
+				newModifier
+			);
+
+			new Notice(`Price modifier updated to ${newModifier >= 0 ? '+' : ''}${newModifier}%`);
+
+			// Re-sync to update display
+			await this.syncWithShop(this.currentShopFile!);
+
+		} catch (error) {
+			console.error('Error updating price modifier:', error);
+			new Notice('Failed to update price modifier. See console for details.');
+
+			// Re-enable button on error
+			button.disabled = false;
+			button.textContent = 'Update';
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Render display mode controls for player display
+	 */
+	private renderDisplayModeControls(container: HTMLElement): void {
+		const modeContainer = container.createDiv({ cls: 'display-mode-controls' });
+
+		modeContainer.createEl('label', {
+			text: 'Display Mode:',
+			cls: 'display-mode-label'
+		});
+
+		// Display mode buttons grid
+		const buttonsGrid = modeContainer.createDiv({ cls: 'display-mode-buttons' });
+
+		// Define main display modes
+		const displayModes: Array<{ mode: DisplayMode; label: string }> = [
+			{ mode: 'standard', label: 'Standard' },
+			{ mode: 'list-2col', label: 'List' },
+			{ mode: 'list-3col', label: 'Compact List' },
+			{ mode: 'compact-cards', label: 'Compact' }
+		];
+
+		// Render mode buttons
+		for (const { mode, label } of displayModes) {
+			const button = buttonsGrid.createEl('button', {
+				text: label,
+				cls: 'display-mode-button'
+			});
+
+			// Add active class if current mode
+			if (this.currentDisplayMode === mode) {
+				button.addClass('display-mode-button-active');
+			}
+
+			// Disable button if currently updating
+			if (this.isUpdating) {
+				button.disabled = true;
+			}
+
+			button.addEventListener('click', async () => {
+				await this.handleDisplayModeChange(mode);
+			});
+		}
+	}
+
+	/**
+	 * Handle display mode change
+	 */
+	private async handleDisplayModeChange(mode: DisplayMode): Promise<void> {
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		try {
+			// Update local tracking
+			this.currentDisplayMode = mode;
+
+			// Trigger event for display view
+			this.app.workspace.trigger('shopboard:set-display-mode', mode);
+
+			// Re-render to update button states
+			this.render();
+
+			// Wait a bit for async operations to complete
+			await new Promise(resolve => setTimeout(resolve, 100));
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Render pagination controls for navigating shop pages
+	 */
+	private renderPaginationControls(container: HTMLElement): void {
+		// Get current page info from display view
+		const displayLeaves = this.app.workspace.getLeavesOfType('shopboard-display');
+		if (displayLeaves.length === 0) return;
+
+		const displayView = displayLeaves[0].view as any;
+		if (!displayView || !displayView.shopData) return;
+
+		const currentPage = displayView.currentPage || 1;
+		const totalPages = displayView.calculateTotalPages ? displayView.calculateTotalPages() : 1;
+
+		// Don't show pagination if only 1 page
+		if (totalPages <= 1) return;
+
+		const paginationContainer = container.createDiv({ cls: 'pagination-controls' });
+
+		paginationContainer.createEl('label', {
+			text: 'Page Navigation:',
+			cls: 'pagination-label'
+		});
+
+		const buttonsContainer = paginationContainer.createDiv({ cls: 'pagination-buttons' });
+
+		// Previous button
+		const prevButton = buttonsContainer.createEl('button', {
+			text: '◀ Prev',
+			cls: 'pagination-button pagination-prev'
+		});
+
+		if (currentPage <= 1) {
+			prevButton.disabled = true;
+			prevButton.addClass('pagination-button-disabled');
+		}
+
+		prevButton.addEventListener('click', async () => {
+			await this.handlePageChange(currentPage - 1);
+		});
+
+		// Page indicator
+		buttonsContainer.createDiv({
+			cls: 'pagination-indicator',
+			text: `Page ${currentPage} of ${totalPages}`
+		});
+
+		// Next button
+		const nextButton = buttonsContainer.createEl('button', {
+			text: 'Next ▶',
+			cls: 'pagination-button pagination-next'
+		});
+
+		if (currentPage >= totalPages) {
+			nextButton.disabled = true;
+			nextButton.addClass('pagination-button-disabled');
+		}
+
+		nextButton.addEventListener('click', async () => {
+			await this.handlePageChange(currentPage + 1);
+		});
+	}
+
+	/**
+	 * Handle page change
+	 */
+	private async handlePageChange(newPage: number): Promise<void> {
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		try {
+			// Trigger event for display view
+			this.app.workspace.trigger('shopboard:change-page', newPage);
+
+			// Re-render to update button states
+			// Wait a bit for the display view to update
+			await new Promise(resolve => setTimeout(resolve, 100));
+			this.render();
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Render shop actions section (add item, restock, etc.)
+	 */
+	private renderShopActionsSection(container: HTMLElement): void {
+		const actionsContainer = container.createDiv({ cls: 'shop-actions-section' });
+
+		actionsContainer.createEl('h3', { text: 'Shop Actions' });
+
+		const buttonsContainer = actionsContainer.createDiv({ cls: 'action-buttons' });
+
+		// Add Item button
+		const addItemButton = buttonsContainer.createEl('button', {
+			text: '+ Add Item',
+			cls: 'action-button add-item-button'
+		});
+
+		addItemButton.addEventListener('click', () => {
+			this.openAddItemModal();
+		});
+
+		// Restock button
+		const restockButton = buttonsContainer.createEl('button', {
+			text: '🔄 Restock Shop',
+			cls: 'action-button restock-button'
+		});
+
+		restockButton.addEventListener('click', () => {
+			this.openRestockModal();
+		});
+
+		// Generate Images button
+		const generateImagesButton = buttonsContainer.createEl('button', {
+			text: '🎨 Generate Images',
+			cls: 'action-button generate-images-button'
+		});
+
+		generateImagesButton.addEventListener('click', async () => {
+			await this.handleGenerateImages(generateImagesButton);
+		});
+	}
+
+	/**
+	 * Open add item modal
+	 */
+	private openAddItemModal(): void {
+		const modal = new AddItemModal(
+			this.app,
+			this.plugin.itemParser,
+			async (itemRef: string, quantity: number, priceOverride: number | null) => {
+				await this.handleAddItem(itemRef, quantity, priceOverride);
+			}
+		);
+		modal.open();
+	}
+
+	/**
+	 * Open restock modal
+	 */
+	private openRestockModal(): void {
+		if (!this.currentShop || !this.currentShopFile) {
+			new Notice('No shop active');
+			return;
+		}
+
+		const modal = new RestockModal(
+			this.app,
+			this.currentShop,
+			this.plugin.shopRestocker,
+			this.plugin.shopGenerator,
+			async (result) => {
+				await this.handleRestock(result);
+			}
+		);
+		modal.open();
+	}
+
+	/**
+	 * Handle adding an item to the shop
+	 */
+	private async handleAddItem(
+		itemRef: string,
+		quantity: number,
+		priceOverride: number | null
+	): Promise<void> {
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		try {
+			await this.plugin.shopModifier.addInventoryItem(
+				this.currentShopFile!,
+				itemRef,
+				quantity,
+				priceOverride
+			);
+
+			new Notice(`Added ${itemRef} to shop (qty: ${quantity})`);
+
+			// Re-sync to update display
+			await this.syncWithShop(this.currentShopFile!);
+
+		} catch (error) {
+			console.error('Error adding item:', error);
+			new Notice('Failed to add item. See console for details.');
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Handle restocking the shop
+	 */
+	private async handleRestock(result: any): Promise<void> {
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		try {
+			// Update the shop's inventory in the frontmatter
+			await this.plugin.shopModifier.updateInventory(
+				this.currentShopFile!,
+				result.inventory
+			);
+
+			// Re-sync to update display
+			await this.syncWithShop(this.currentShopFile!);
+
+		} catch (error) {
+			console.error('Error restocking shop:', error);
+			new Notice('Failed to restock shop. See console for details.');
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Handle generating images for all items in the shop
+	 */
+	private async handleGenerateImages(button: HTMLButtonElement): Promise<void> {
+		// Check if API key is configured
+		if (!this.plugin.imageGenerator.isConfigured()) {
+			new Notice('OpenAI API key not configured. Please add your API key in Shopboard settings.');
+			return;
+		}
+
+		// Check if shop has any items
+		if (!this.currentShop || this.currentShop.inventory.length === 0) {
+			new Notice('No items in shop to generate images for.');
+			return;
+		}
+
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		// Disable button during processing
+		button.disabled = true;
+		const originalText = button.textContent;
+		button.textContent = 'Generating...';
+
+		try {
+			// Collect all unique item files that have valid item data
+			const itemFiles = new Map<string, TFile>();
+
+			for (const invItem of this.currentShop.inventory) {
+				if (invItem.itemData && invItem.itemData.file) {
+					// Use file path as key to avoid duplicates
+					const filePath = invItem.itemData.file.path;
+					if (!itemFiles.has(filePath)) {
+						itemFiles.set(filePath, invItem.itemData.file);
+					}
+				}
+			}
+
+			if (itemFiles.size === 0) {
+				new Notice('No valid items found to generate images for.');
+				return;
+			}
+
+			new Notice(`Generating images for ${itemFiles.size} item(s)...`);
+
+			// Generate images for each unique item
+			let successCount = 0;
+			let failCount = 0;
+			let current = 0;
+			const total = itemFiles.size;
+
+			for (const [filePath, itemFile] of itemFiles.entries()) {
+				current++;
+				button.textContent = `Generating ${current}/${total}...`;
+
+				try {
+					const result = await this.plugin.imageGenerator.generateImageForItem(itemFile);
+					if (result) {
+						successCount++;
+					} else {
+						failCount++;
+					}
+				} catch (error) {
+					console.error(`Error generating image for ${itemFile.basename}:`, error);
+					failCount++;
+				}
+			}
+
+			// Show summary
+			if (successCount > 0 && failCount === 0) {
+				new Notice(`Successfully generated ${successCount} image(s)!`);
+			} else if (successCount > 0 && failCount > 0) {
+				new Notice(`Generated ${successCount} image(s), ${failCount} failed.`);
+			} else {
+				new Notice(`Failed to generate images. Check console for details.`);
+			}
+
+			// Re-sync to update display with new images
+			await this.syncWithShop(this.currentShopFile!);
+
+		} catch (error) {
+			console.error('Error during image generation:', error);
+			new Notice('Failed to generate images. See console for details.');
+		} finally {
+			// Re-enable button
+			button.disabled = false;
+			button.textContent = originalText || '🎨 Generate Images';
+			this.isUpdating = false;
+		}
 	}
 
 	/**
@@ -199,8 +704,13 @@ export class DMControlView extends ItemView {
 			return;
 		}
 
-		// Render control for each item
-		this.currentShop!.inventory.forEach((invItem, index) => {
+		// Create sorted array with original indices preserved
+		const sortedInventory = this.currentShop!.inventory
+			.map((invItem, index) => ({ invItem, index }))
+			.sort((a, b) => a.invItem.calculatedPrice - b.invItem.calculatedPrice);
+
+		// Render control for each item (sorted by price, lowest first)
+		sortedInventory.forEach(({ invItem, index }) => {
 			this.renderItemControl(inventoryEl, invItem, index);
 		});
 	}
@@ -233,10 +743,30 @@ export class DMControlView extends ItemView {
 			text: item.name
 		});
 
-		// Item stock
+		// Price display
+		const priceText = this.plugin.priceCalculator.formatCurrency(invItem.calculatedPrice);
+		infoEl.createDiv({
+			cls: 'item-price-small',
+			text: priceText
+		});
+
+		// Stock controls section
+		const stockControlsEl = controlEl.createDiv({ cls: 'stock-controls' });
+
+		// Decrement button
+		const decrementButton = stockControlsEl.createEl('button', {
+			cls: 'stock-adjust-button stock-decrement',
+			text: '−'
+		});
+
+		decrementButton.addEventListener('click', async () => {
+			await this.handleStockDecrement(index, invItem, decrementButton);
+		});
+
+		// Stock display
 		const stockText = invItem.quantity === 0 ? 'Out of stock' : `Stock: ${invItem.quantity}`;
-		const stockEl = infoEl.createSpan({
-			cls: 'item-stock',
+		const stockEl = stockControlsEl.createSpan({
+			cls: 'stock-display',
 			text: stockText
 		});
 
@@ -244,11 +774,14 @@ export class DMControlView extends ItemView {
 			stockEl.addClass('out-of-stock');
 		}
 
-		// Price display
-		const priceText = this.plugin.priceCalculator.formatCurrency(invItem.calculatedPrice);
-		infoEl.createDiv({
-			cls: 'item-price-small',
-			text: priceText
+		// Increment button
+		const incrementButton = stockControlsEl.createEl('button', {
+			cls: 'stock-adjust-button stock-increment',
+			text: '+'
+		});
+
+		incrementButton.addEventListener('click', async () => {
+			await this.handleStockIncrement(index, invItem, incrementButton);
 		});
 
 		// Action controls section
@@ -292,6 +825,16 @@ export class DMControlView extends ItemView {
 				await this.handlePurchase(index, quantity, recordButton, quantityInput);
 			});
 		}
+
+		// Remove item button
+		const removeButton = controlsEl.createEl('button', {
+			cls: 'remove-item-button',
+			text: '🗑️ Remove'
+		});
+
+		removeButton.addEventListener('click', async () => {
+			await this.handleRemoveItem(index, invItem, removeButton);
+		});
 	}
 
 	/**
@@ -348,6 +891,9 @@ export class DMControlView extends ItemView {
 			return;
 		}
 
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
 		// Disable controls during processing
 		button.disabled = true;
 		input.disabled = true;
@@ -379,6 +925,115 @@ export class DMControlView extends ItemView {
 			button.disabled = false;
 			input.disabled = false;
 			button.textContent = 'Record Sale';
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Handle removing an item from the shop
+	 */
+	private async handleRemoveItem(
+		itemIndex: number,
+		invItem: ShopInventoryItem,
+		button: HTMLButtonElement
+	): Promise<void> {
+		// Get item name for confirmation
+		const itemName = invItem.itemData?.name || invItem.itemRef;
+
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		// Disable button during processing
+		button.disabled = true;
+		button.textContent = 'Removing...';
+
+		try {
+			await this.plugin.shopModifier.removeInventoryItem(
+				this.currentShopFile!,
+				itemIndex
+			);
+
+			new Notice(`Removed ${itemName} from shop`);
+
+			// Re-sync to update display
+			await this.syncWithShop(this.currentShopFile!);
+
+		} catch (error) {
+			console.error('Error removing item:', error);
+			new Notice('Failed to remove item. See console for details.');
+
+			// Re-enable button on error
+			button.disabled = false;
+			button.textContent = '🗑️ Remove';
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Handle incrementing item stock
+	 */
+	private async handleStockIncrement(
+		itemIndex: number,
+		invItem: ShopInventoryItem,
+		button: HTMLButtonElement
+	): Promise<void> {
+		const newQuantity = invItem.quantity + 1;
+		await this.updateItemStock(itemIndex, invItem, newQuantity, button);
+	}
+
+	/**
+	 * Handle decrementing item stock
+	 */
+	private async handleStockDecrement(
+		itemIndex: number,
+		invItem: ShopInventoryItem,
+		button: HTMLButtonElement
+	): Promise<void> {
+		// Prevent going below 0
+		if (invItem.quantity <= 0) {
+			new Notice('Stock is already at 0');
+			return;
+		}
+
+		const newQuantity = invItem.quantity - 1;
+		await this.updateItemStock(itemIndex, invItem, newQuantity, button);
+	}
+
+	/**
+	 * Update item stock quantity
+	 */
+	private async updateItemStock(
+		itemIndex: number,
+		invItem: ShopInventoryItem,
+		newQuantity: number,
+		button: HTMLButtonElement
+	): Promise<void> {
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		// Disable button during processing
+		button.disabled = true;
+
+		try {
+			await this.plugin.shopModifier.updateItemQuantity(
+				this.currentShopFile!,
+				itemIndex,
+				newQuantity
+			);
+
+			// Re-sync to update display
+			await this.syncWithShop(this.currentShopFile!);
+
+		} catch (error) {
+			console.error('Error updating stock:', error);
+			new Notice('Failed to update stock. See console for details.');
+
+			// Re-enable button on error
+			button.disabled = false;
+		} finally {
+			this.isUpdating = false;
 		}
 	}
 }

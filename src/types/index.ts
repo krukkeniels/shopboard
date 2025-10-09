@@ -18,6 +18,8 @@ export interface ItemData {
 	description?: string;
 	/** Image URL (can be online resource or local file path) */
 	imageUrl?: string;
+	/** List of shop types where this item is always available (e.g., ["alchemist", "general_store"]) */
+	stapleForShops?: string[];
 	/** Additional metadata from frontmatter */
 	metadata: Record<string, any>;
 }
@@ -52,6 +54,10 @@ export interface ShopData {
 	priceModifier: number;
 	/** Shop inventory with resolved items */
 	inventory: ShopInventoryItem[];
+	/** Display mode for shop view */
+	displayMode?: DisplayMode;
+	/** Current page for paginated display (defaults to 1) */
+	currentPage?: number;
 	/** Additional metadata from frontmatter */
 	metadata: Record<string, any>;
 }
@@ -114,6 +120,12 @@ export interface ShopboardSettings {
 	themeOverride: boolean;
 	/** Enable auto-refresh on shop note changes */
 	autoRefresh: boolean;
+	/** OpenAI API key for image generation */
+	openaiApiKey: string;
+	/** Image generation style */
+	imageStyle: ImageStyle;
+	/** Attachment folder name for generated images */
+	attachmentFolder: string;
 	/** Settings version for migration */
 	version: string;
 }
@@ -143,4 +155,123 @@ export interface ShopTemplate {
 		item: string;
 		quantity: number;
 	}>;
+}
+
+/**
+ * Rarity levels in D&D 5e (ordered from common to legendary)
+ */
+export type RarityLevel = 'common' | 'uncommon' | 'rare' | 'very rare' | 'legendary';
+
+/**
+ * Image generation style options for DALL-E
+ */
+export type ImageStyle = 'realistic' | 'fantasy-painting' | 'digital-art' | 'isometric' | 'sketch';
+
+/**
+ * Display mode options for shop inventory view
+ */
+export type DisplayMode =
+	| 'standard'       // Auto-sizing grid based on item count
+	| 'large-cards'    // 2-3 columns, large cards
+	| 'compact-cards'  // 5-6 columns, small cards
+	| 'list-2col'      // 2-column list format
+	| 'list-3col'      // 3-column list format
+	| 'dense-list'     // Multi-column compact list
+	| 'gallery'        // Image-focused display
+	| 'table';         // Spreadsheet-style table
+
+/**
+ * Shop size presets
+ */
+export type ShopSizePreset = 'small' | 'medium' | 'large' | 'huge' | 'custom';
+
+/**
+ * Shop size configuration
+ */
+export interface ShopSize {
+	/** Size preset identifier */
+	preset: ShopSizePreset;
+	/** Minimum number of unique items */
+	minItems: number;
+	/** Maximum number of unique items */
+	maxItems: number;
+	/** Display label */
+	label: string;
+}
+
+/**
+ * Parameters for generating a shop
+ */
+export interface ShopGenerationParams {
+	/** Shop name */
+	name: string;
+	/** Shop type identifier */
+	shopType: string;
+	/** Price modifier percentage */
+	priceModifier: number;
+	/** Shop size configuration */
+	size: ShopSize;
+	/** Total inventory budget in base currency (copper pieces) */
+	budget: number;
+	/** Minimum rarity to include (null = no minimum) */
+	minRarity: RarityLevel | null;
+	/** Maximum rarity to include (null = no maximum) */
+	maxRarity: RarityLevel | null;
+	/** Folder path for the shop file */
+	folderPath: string;
+	/** Include staple items for this shop type */
+	includeStapleItems: boolean;
+}
+
+/**
+ * Generated inventory result
+ */
+export interface GeneratedInventory {
+	/** Generated inventory items */
+	items: Array<{
+		itemRef: string;
+		quantity: number;
+		priceOverride: number | null;
+	}>;
+	/** Total value of generated inventory */
+	totalValue: number;
+	/** Number of items generated */
+	itemCount: number;
+}
+
+/**
+ * Restock intensity levels
+ */
+export type RestockIntensity = 'light' | 'medium' | 'heavy';
+
+/**
+ * Parameters for restocking a shop
+ */
+export interface RestockParams {
+	/** Restock intensity level */
+	intensity: RestockIntensity;
+	/** Minimum rarity for new items (null = no minimum) */
+	minRarity: RarityLevel | null;
+	/** Maximum rarity for new items (null = no maximum) */
+	maxRarity: RarityLevel | null;
+	/** Budget for new items in base currency (0 = unlimited) */
+	budget: number;
+}
+
+/**
+ * Result of a restock operation
+ */
+export interface RestockResult {
+	/** Updated inventory */
+	inventory: Array<{
+		itemRef: string;
+		quantity: number;
+		priceOverride: number | null;
+	}>;
+	/** Items that were removed */
+	removedCount: number;
+	/** Items that were added */
+	addedCount: number;
+	/** Items whose quantities were reduced */
+	reducedCount: number;
 }

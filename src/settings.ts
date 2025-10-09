@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type ShopboardPlugin from './main';
-import { ShopboardSettings } from './types';
+import { ShopboardSettings, ImageStyle } from './types';
 
 /**
  * Default plugin settings
@@ -36,6 +36,9 @@ export const DEFAULT_SETTINGS: ShopboardSettings = {
 	},
 	themeOverride: true,
 	autoRefresh: true,
+	openaiApiKey: '',
+	imageStyle: 'digital-art',
+	attachmentFolder: '_attachments',
 	version: '1.0.0'
 };
 
@@ -131,6 +134,51 @@ export class ShopboardSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.autoRefresh = value;
 					await this.plugin.saveSettings();
+				}));
+
+		// OpenAI API Key Setting
+		new Setting(containerEl)
+			.setName('OpenAI API Key')
+			.setDesc('API key for generating item images with DALL-E. Get your key at https://platform.openai.com/api-keys')
+			.addText(text => text
+				.setPlaceholder('sk-...')
+				.setValue(this.plugin.settings.openaiApiKey)
+				.onChange(async (value) => {
+					this.plugin.settings.openaiApiKey = value.trim();
+					await this.plugin.saveSettings();
+				})
+				.inputEl.setAttribute('type', 'password'));
+
+		// Image Style Setting
+		new Setting(containerEl)
+			.setName('Image Generation Style')
+			.setDesc('Art style for AI-generated item images')
+			.addDropdown(dropdown => dropdown
+				.addOption('realistic', 'Realistic Photo')
+				.addOption('fantasy-painting', 'Fantasy Painting')
+				.addOption('digital-art', 'Digital Illustration')
+				.addOption('isometric', 'Isometric Game Asset')
+				.addOption('sketch', 'Hand-Drawn Sketch')
+				.setValue(this.plugin.settings.imageStyle)
+				.onChange(async (value) => {
+					this.plugin.settings.imageStyle = value as ImageStyle;
+					await this.plugin.saveSettings();
+				}));
+
+		// Attachment Folder Setting
+		new Setting(containerEl)
+			.setName('Attachment Folder')
+			.setDesc('Folder name for AI-generated images (relative to item file location)')
+			.addText(text => text
+				.setPlaceholder('_attachments')
+				.setValue(this.plugin.settings.attachmentFolder)
+				.onChange(async (value) => {
+					const folderName = value.trim() || '_attachments';
+					this.plugin.settings.attachmentFolder = folderName;
+					await this.plugin.saveSettings();
+
+					// Update the image generator with new folder
+					this.plugin.imageGenerator.updateAttachmentFolder(folderName);
 				}));
 
 		// Shop Types Section

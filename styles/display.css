@@ -6,14 +6,15 @@
 .shopboard-display-container {
 	width: 100%;
 	height: 100%;
-	overflow-y: auto;
+	overflow: hidden; /* No scrolling - pagination instead */
 	background: var(--background-primary);
 	padding: 2rem;
+	display: flex;
+	flex-direction: column;
 }
 
 /* Main display wrapper */
 .shopboard-display {
-	max-width: 1400px;
 	margin: 0 auto;
 	font-family: var(--font-interface);
 }
@@ -24,16 +25,16 @@
 
 .shop-header {
 	text-align: center;
-	margin-bottom: 3rem;
-	padding: 2rem;
+	margin-bottom: 1.5rem;
+	padding: 1rem;
 	border-bottom: 3px double var(--background-modifier-border);
 	position: relative;
 }
 
 .shop-name {
-	font-size: 3rem;
+	font-size: 2.25rem;
 	font-weight: 700;
-	margin: 0 0 1rem 0;
+	margin: 0 0 0.5rem 0;
 	color: var(--text-title-h1);
 	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 	font-family: var(--font-text);
@@ -65,19 +66,77 @@
 	font-weight: 600;
 }
 
+.page-indicator {
+	position: absolute;
+	bottom: 0.5rem;
+	right: 1rem;
+	padding: 0.4rem 1rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: 12px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	opacity: 0.9;
+}
+
 /* ==========================================================================
-   Inventory Grid
+   Inventory Column Layout (Restaurant Menu Style)
    ========================================================================== */
 
 .shop-inventory {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-	gap: 1.5rem;
+	columns: 2;
+	column-gap: 2rem;
+	padding: 1rem;
+	overflow: hidden; /* No vertical scrolling - pagination instead */
+	max-height: calc(100vh - 300px); /* Limit height to prevent overflow */
+}
+
+/* ==========================================================================
+   Dynamic Column Count Tiers (Restaurant Menu Style)
+   ========================================================================== */
+
+/* Size XLarge: 1-6 items - single column */
+.shop-inventory.size-xlarge {
+	columns: 1;
+	column-gap: 2rem;
+	padding: 1.5rem;
+}
+
+/* Size Large: 7-12 items - 2 columns */
+.shop-inventory.size-large {
+	columns: 2;
+	column-gap: 2rem;
+	padding: 1.25rem;
+}
+
+/* Size Medium: 13-20 items - 2 columns */
+.shop-inventory.size-medium {
+	columns: 2;
+	column-gap: 2rem;
 	padding: 1rem;
 }
 
+/* Size Small: 21-30 items - 3 columns */
+.shop-inventory.size-small {
+	columns: 3;
+	column-gap: 1.5rem;
+	padding: 0.75rem;
+}
+
+/* Size Tiny: 31-50 items - 3 columns, compact */
+.shop-inventory.size-tiny {
+	columns: 3;
+	column-gap: 1.5rem;
+	padding: 0.5rem;
+}
+
+/* Size Scrollable: 51+ items - 3 columns */
+.shop-inventory.size-scrollable {
+	columns: 3;
+	column-gap: 1.5rem;
+}
+
 .inventory-empty {
-	grid-column: 1 / -1;
 	text-align: center;
 	padding: 3rem;
 	color: var(--text-muted);
@@ -90,26 +149,118 @@
    ========================================================================== */
 
 .inventory-item {
-	background: var(--background-secondary);
-	border: 2px solid var(--background-modifier-border);
-	border-radius: 12px;
+	background: linear-gradient(
+		135deg,
+		var(--background-secondary) 0%,
+		rgba(139, 92, 46, 0.03) 100%
+	);
+	border: 3px solid var(--background-modifier-border);
+	border-radius: 8px;
 	padding: 1.5rem;
-	transition: all 0.3s ease;
 	position: relative;
-	overflow: hidden;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	overflow: visible;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.inventory-item:hover {
-	transform: translateY(-4px);
-	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-	border-color: var(--interactive-accent);
+.item-category-badge {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	padding: 0.2rem 0.6rem;
+	background: var(--background-modifier-border);
+	color: var(--text-muted);
+	border-radius: 8px;
+	font-size: 0.7rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	opacity: 0.7;
+	z-index: 5;
 }
 
-.inventory-item.inventory-item-selected {
-	border-color: var(--interactive-accent);
-	border-width: 5px;
-	animation: pulse-glow 2s ease-in-out infinite;
+/* Decorative top accent */
+.inventory-item::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 10%;
+	right: 10%;
+	height: 3px;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		var(--background-modifier-border),
+		transparent
+	);
+	opacity: 0.6;
+}
+
+/* Ornamental corners */
+.inventory-item::after {
+	content: '✦';
+	position: absolute;
+	top: 0.5rem;
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: 0.7rem;
+	color: var(--text-faint);
+	opacity: 0.3;
+}
+
+/* ==========================================================================
+   Disable ALL hover effects in display view
+   ========================================================================== */
+
+/* Override all theme-specific hover effects */
+.shopboard-display .inventory-item:hover,
+.shopboard-display .shop-type-magic_shop .inventory-item:hover,
+.shopboard-display .shop-type-blacksmith .inventory-item:hover,
+.shopboard-display .shop-type-general_store .inventory-item:hover,
+.shopboard-display .shop-type-alchemist .inventory-item:hover {
+	transform: none !important;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+	border-color: var(--background-modifier-border) !important;
+	background: inherit !important;
+	animation: none !important;
+}
+
+/* Disable hover pseudo-elements */
+.shopboard-display .inventory-item:hover::before,
+.shopboard-display .inventory-item:hover::after {
+	opacity: 0.3 !important;
+	animation: none !important;
+}
+
+/* ==========================================================================
+   Selected Item Styling - High Priority
+   ========================================================================== */
+
+/* Strong selected state that overrides everything */
+.shopboard-display .inventory-item.inventory-item-selected {
+	border-color: var(--interactive-accent) !important;
+	border-width: 4px !important;
+	animation: pulse-glow 2s ease-in-out infinite !important;
+	background: linear-gradient(
+		135deg,
+		var(--background-secondary) 0%,
+		rgba(var(--interactive-accent-rgb, 88, 86, 214), 0.1) 100%
+	) !important;
+	transform: none !important;
+}
+
+/* Ensure selected state works even on hover */
+.shopboard-display .inventory-item.inventory-item-selected:hover {
+	border-color: var(--interactive-accent) !important;
+	border-width: 4px !important;
+	animation: pulse-glow 2s ease-in-out infinite !important;
+	background: linear-gradient(
+		135deg,
+		var(--background-secondary) 0%,
+		rgba(var(--interactive-accent-rgb, 88, 86, 214), 0.1) 100%
+	) !important;
+	transform: none !important;
 }
 
 @keyframes pulse-glow {
@@ -144,12 +295,7 @@
 .item-image {
 	width: 100%;
 	height: 100%;
-	object-fit: cover;
-	transition: transform 0.3s ease;
-}
-
-.item-image:hover {
-	transform: scale(1.05);
+	object-fit: contain;
 }
 
 .item-image-placeholder {
@@ -178,17 +324,43 @@
 }
 
 .item-price {
-	font-size: 1.6rem;
+	position: absolute;
+	top: 0.75rem;
+	left: 0.75rem;
+	z-index: 10;
+
+	font-size: 1rem;
 	font-weight: 700;
-	color: var(--interactive-accent);
-	margin-bottom: 0.5rem;
 	font-family: var(--font-monospace);
+
+	background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+	color: #ffffff;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+
+	padding: 0.4rem 0.8rem;
+	border-radius: 6px;
+	border: 2px solid #92400e;
+	box-shadow:
+		0 2px 4px rgba(0, 0, 0, 0.3),
+		0 0 10px rgba(217, 119, 6, 0.4);
+
+	transform: rotate(-5deg);
+}
+
+.item-price::before {
+	content: '🪙 ';
+	font-size: 0.9em;
 }
 
 .item-quantity {
-	font-size: 0.9rem;
+	position: absolute;
+	bottom: 0.5rem;
+	right: 0.75rem;
+
+	font-size: 0.65rem;
 	color: var(--text-muted);
-	font-style: italic;
+	opacity: 0.5;
+	font-weight: 500;
 }
 
 .item-rarity-badge {
@@ -202,6 +374,86 @@
 	text-transform: capitalize;
 	background: var(--background-modifier-border);
 	color: var(--text-normal);
+}
+
+/* ==========================================================================
+   Category Sections
+   ========================================================================== */
+
+.category-section {
+	break-inside: auto; /* Allow breaking across columns to eliminate gaps */
+	margin-bottom: 1.5rem;
+}
+
+.category-label {
+	font-size: 1.2rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	margin: 0 0 0.75rem 0;
+	padding: 0;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.category-items {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+/* Items within categories - menu style */
+.category-items .inventory-item {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 0.75rem;
+}
+
+.category-items .item-image-container {
+	width: 50px;
+	height: 50px;
+	margin: 0;
+	flex-shrink: 0;
+}
+
+.category-items .item-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.category-items .item-name {
+	font-size: 1rem;
+	margin-bottom: 0.25rem;
+	font-weight: 600;
+}
+
+.category-items .item-description {
+	font-size: 0.85rem;
+	margin-bottom: 0.35rem;
+	min-height: auto;
+	line-height: 1.4;
+}
+
+.category-items .item-price {
+	position: static;
+	transform: none;
+	margin: 0;
+	flex-shrink: 0;
+	font-size: 0.85rem;
+	padding: 0.25rem 0.5rem;
+	align-self: flex-start;
+}
+
+.category-items .item-quantity {
+	font-size: 0.7rem;
+	position: static;
+	opacity: 0.7;
+	margin: 0;
+}
+
+.category-items .item-rarity-badge {
+	display: none;
 }
 
 /* ==========================================================================
@@ -349,7 +601,7 @@
 .detail-item-image {
 	width: 100%;
 	height: 100%;
-	object-fit: cover;
+	object-fit: contain;
 }
 
 .detail-image-placeholder {
@@ -425,6 +677,60 @@
 	margin-bottom: 1rem;
 	line-height: 1.6;
 	font-style: italic;
+}
+
+/* Metadata info section */
+.detail-meta-info {
+	background: linear-gradient(
+		135deg,
+		var(--background-primary-alt) 0%,
+		var(--background-secondary) 100%
+	);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 1rem;
+	margin: 1.25rem 0;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.meta-info-item {
+	display: flex;
+	align-items: baseline;
+	margin-bottom: 0.6rem;
+	line-height: 1.5;
+}
+
+.meta-info-item:last-child {
+	margin-bottom: 0;
+}
+
+.meta-info-label {
+	font-weight: 600;
+	color: var(--text-normal);
+	font-size: 0.95rem;
+}
+
+.meta-info-value {
+	color: var(--text-muted);
+	font-size: 0.95rem;
+	margin-left: 0.25rem;
+}
+
+.meta-info-subtext {
+	color: var(--text-faint);
+	font-size: 0.85rem;
+	font-style: italic;
+}
+
+.attunement-required {
+	color: var(--interactive-accent);
+	display: inline-flex;
+	align-items: center;
+}
+
+.attunement-not-required {
+	color: var(--text-muted);
+	opacity: 0.8;
 }
 
 .detail-divider {
@@ -519,4 +825,244 @@
 	.item-detail-panel {
 		display: none;
 	}
+}
+
+/* ==========================================================================
+   List Layout Modes
+   ========================================================================== */
+
+/* 2-Column List Layout */
+.shop-inventory.layout-list-2col {
+	columns: 2;
+	column-gap: 0.75rem;
+	padding: 1rem;
+}
+
+.shop-inventory.layout-list-2col .inventory-item {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 0.75rem;
+	padding-right: 90px;
+	gap: 1rem;
+	position: relative;
+}
+
+.shop-inventory.layout-list-2col .item-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	justify-content: center;
+}
+
+.shop-inventory.layout-list-2col .item-image-container {
+	width: 80px;
+	height: 80px;
+	margin: 0;
+	flex-shrink: 0;
+}
+
+.shop-inventory.layout-list-2col .item-name {
+	font-size: 1.1rem;
+	margin-bottom: 0.25rem;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.shop-inventory.layout-list-2col .item-description {
+	font-size: 0.85rem;
+	margin-bottom: 0.5rem;
+	min-height: auto;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.shop-inventory.layout-list-2col .item-price {
+	position: absolute;
+	top: 0.75rem;
+	left: auto;
+	right: 0.75rem;
+	transform: rotate(0deg);
+	margin: 0;
+	white-space: nowrap;
+	padding: 0.25rem 0.6rem;
+	font-size: 0.85rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.shop-inventory.layout-list-2col .item-quantity {
+	display: none;
+}
+
+.shop-inventory.layout-list-2col .item-rarity-badge {
+	display: none;
+}
+
+/* 3-Column List Layout */
+.shop-inventory.layout-list-3col {
+	columns: 3;
+	column-gap: 0.5rem;
+	padding: 0.75rem;
+}
+
+.shop-inventory.layout-list-3col .inventory-item {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 0.5rem;
+	padding-right: 80px;
+	gap: 0.75rem;
+	position: relative;
+}
+
+.shop-inventory.layout-list-3col .item-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	justify-content: center;
+}
+
+.shop-inventory.layout-list-3col .item-image-container {
+	width: 60px;
+	height: 60px;
+	margin: 0;
+	flex-shrink: 0;
+}
+
+.shop-inventory.layout-list-3col .item-name {
+	font-size: 0.95rem;
+	margin-bottom: 0.2rem;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.shop-inventory.layout-list-3col .item-description {
+	display: none; /* Hide descriptions in compact list */
+}
+
+.shop-inventory.layout-list-3col .item-price {
+	position: absolute;
+	top: 0.5rem;
+	left: auto;
+	right: 0.5rem;
+	transform: rotate(0deg);
+	margin: 0;
+	font-size: 0.75rem;
+	white-space: nowrap;
+	padding: 0.2rem 0.5rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.shop-inventory.layout-list-3col .item-quantity {
+	display: none;
+}
+
+.shop-inventory.layout-list-3col .item-rarity-badge {
+	display: none;
+}
+
+/* Dense List Layout */
+.shop-inventory.layout-dense-list {
+	columns: 4;
+	column-gap: 0.35rem;
+	padding: 0.5rem;
+}
+
+.shop-inventory.layout-dense-list .inventory-item {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 0.4rem;
+	gap: 0.5rem;
+	position: relative;
+}
+
+.shop-inventory.layout-dense-list .item-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	justify-content: center;
+}
+
+.shop-inventory.layout-dense-list .item-image-container {
+	width: 40px;
+	height: 40px;
+	margin: 0;
+	flex-shrink: 0;
+}
+
+.shop-inventory.layout-dense-list .item-name {
+	font-size: 0.85rem;
+	margin-bottom: 0.1rem;
+}
+
+.shop-inventory.layout-dense-list .item-description {
+	display: none;
+}
+
+.shop-inventory.layout-dense-list .item-price {
+	position: static;
+	margin: 0;
+	transform: none;
+	font-size: 0.8rem;
+	padding: 0.2rem 0.4rem;
+}
+
+.shop-inventory.layout-dense-list .item-quantity {
+	display: none; /* Too compact for quantity */
+}
+
+.shop-inventory.layout-dense-list .item-rarity-badge {
+	display: none;
+}
+
+/* Gallery Layout */
+.shop-inventory.layout-gallery {
+	columns: 3;
+	column-gap: 1.5rem;
+	padding: 1.5rem;
+}
+
+.shop-inventory.layout-gallery .inventory-item {
+	display: flex;
+	flex-direction: column;
+	padding: 1rem;
+}
+
+.shop-inventory.layout-gallery .item-image-container {
+	width: 100%;
+	height: 300px;
+	margin-bottom: 1rem;
+}
+
+.shop-inventory.layout-gallery .item-name {
+	font-size: 1.3rem;
+	text-align: center;
+}
+
+.shop-inventory.layout-gallery .item-description {
+	display: none; /* Focus on images */
+}
+
+.shop-inventory.layout-gallery .item-price {
+	position: static;
+	align-self: center;
+	transform: none;
+	font-size: 1.1rem;
+}
+
+/* Table Layout - TODO: Implement table rendering */
+.shop-inventory.layout-table {
+	/* Will be implemented when table rendering is added */
+	display: block;
+	padding: 1rem;
 }

@@ -110,8 +110,8 @@ export class PriceCalculator {
 		// Find the smallest denomination value (base unit)
 		const smallestValue = sorted[sorted.length - 1].value;
 
-		// Convert price to base units
-		let remainingInBaseUnits = Math.round(price / smallestValue);
+		// Price is already in base units (copper pieces)
+		let remainingInBaseUnits = Math.round(price);
 
 		const breakdown: Array<{ name: string; amount: number }> = [];
 

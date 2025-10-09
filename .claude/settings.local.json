@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/marti/iCloudDrive/iCloud~md~obsidian/Velora/09 - Assets/Magic Items/**)",
+      "WebSearch"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

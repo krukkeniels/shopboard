@@ -7,8 +7,13 @@ import { PriceCalculator } from './utils/priceCalculator';
 import { ShopDisplayView, VIEW_TYPE_SHOP_DISPLAY } from './views/shopDisplayView';
 import { DMControlView, VIEW_TYPE_DM_CONTROL } from './views/dmControlView';
 import { PurchaseHandler } from './handlers/purchaseHandler';
+import { ShopModifier } from './handlers/shopModifier';
 import { TemplateProvider } from './utils/templateProvider';
+import { ShopGenerator } from './utils/shopGenerator';
+import { ShopRestocker } from './utils/shopRestocker';
+import { ImageGenerator } from './utils/imageGenerator';
 import { TemplateSelectionModal } from './modals/templateSelectionModal';
+import { ShopBuilderModal } from './modals/shopBuilderModal';
 
 /**
  * Main Shopboard plugin class
@@ -19,7 +24,11 @@ export default class ShopboardPlugin extends Plugin {
 	shopParser!: ShopParser;
 	priceCalculator!: PriceCalculator;
 	purchaseHandler!: PurchaseHandler;
+	shopModifier!: ShopModifier;
 	templateProvider!: TemplateProvider;
+	shopGenerator!: ShopGenerator;
+	shopRestocker!: ShopRestocker;
+	imageGenerator!: ImageGenerator;
 
 	/**
 	 * Plugin initialization
@@ -40,9 +49,19 @@ export default class ShopboardPlugin extends Plugin {
 
 		// Initialize handlers (Phase 3)
 		this.purchaseHandler = new PurchaseHandler(this.app);
+		this.shopModifier = new ShopModifier(this.app);
 
 		// Initialize template provider (Phase 4)
 		this.templateProvider = new TemplateProvider(this.settings);
+
+		// Initialize shop generator
+		this.shopGenerator = new ShopGenerator(this.itemParser);
+
+		// Initialize shop restocker
+		this.shopRestocker = new ShopRestocker(this.itemParser, this.shopGenerator);
+
+		// Initialize image generator
+		this.imageGenerator = new ImageGenerator(this.app, this.settings.openaiApiKey, this.settings.imageStyle, this.settings.attachmentFolder);
 
 		// Perform initial item scan
 		try {
@@ -75,9 +94,9 @@ export default class ShopboardPlugin extends Plugin {
 		// Register context menu
 		this.registerContextMenu();
 
-		// Register ribbon icon (Phase 3)
-		this.addRibbonIcon('clipboard-list', 'Shop Control Panel', async (evt: MouseEvent) => {
-			await this.activateDMPanel();
+		// Register ribbon icon with menu (Phase 3)
+		this.addRibbonIcon('clipboard-list', 'Shopboard Menu', (evt: MouseEvent) => {
+			this.showRibbonMenu(evt);
 		});
 
 		console.log('Shopboard plugin loaded successfully');
@@ -106,6 +125,13 @@ export default class ShopboardPlugin extends Plugin {
 	 */
 	async saveSettings() {
 		await this.saveData(this.settings);
+
+		// Update image generator with new settings
+		if (this.imageGenerator) {
+			this.imageGenerator.updateApiKey(this.settings.openaiApiKey);
+			this.imageGenerator.updateImageStyle(this.settings.imageStyle);
+			this.imageGenerator.updateAttachmentFolder(this.settings.attachmentFolder);
+		}
 	}
 
 	/**
@@ -165,22 +191,32 @@ export default class ShopboardPlugin extends Plugin {
 		// Command: Create new shop (Phase 4)
 		this.addCommand({
 			id: 'create-shop',
-			name: 'Create new shop',
+			name: 'Create new shop from template',
 			callback: () => {
 				this.openTemplateModal();
+			}
+		});
+
+		// Command: Build custom shop
+		this.addCommand({
+			id: 'build-shop',
+			name: 'Build custom shop',
+			callback: () => {
+				this.openShopBuilderModal();
 			}
 		});
 	}
 
 	/**
-	 * Register context menu for shop notes
+	 * Register context menu for shop and item notes
 	 */
 	private registerContextMenu(): void {
 		this.registerEvent(
 			// @ts-ignore - file-menu event exists but may not be in type definitions
 			this.app.workspace.on('file-menu', (menu: Menu, file: TFile) => {
-				// Only add menu item for shop notes
 				const cache = this.app.metadataCache.getFileCache(file);
+
+				// Add menu item for shop notes
 				if (cache?.frontmatter?.type === 'shop') {
 					menu.addItem((item) => {
 						item
@@ -188,6 +224,18 @@ export default class ShopboardPlugin extends Plugin {
 							.setIcon('shopping-bag')
 							.onClick(() => {
 								this.displayShop(file);
+							});
+					});
+				}
+
+				// Add menu item for item notes
+				if (cache?.frontmatter?.type === 'item') {
+					menu.addItem((item) => {
+						item
+							.setTitle('Generate Image with AI')
+							.setIcon('image-plus')
+							.onClick(async () => {
+								await this.generateItemImage(file);
 							});
 					});
 				}
@@ -207,7 +255,19 @@ export default class ShopboardPlugin extends Plugin {
 				return;
 			}
 
-			const leaf = this.app.workspace.getLeaf('tab');
+			// Check if shop display is already open
+			const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_SHOP_DISPLAY);
+
+			let leaf: WorkspaceLeaf;
+			if (existing.length > 0) {
+				// Reuse existing shop display tab
+				leaf = existing[0];
+				this.app.workspace.revealLeaf(leaf);
+			} else {
+				// Create new tab
+				leaf = this.app.workspace.getLeaf('tab');
+			}
+
 			await leaf.setViewState({
 				type: VIEW_TYPE_SHOP_DISPLAY,
 				active: true
@@ -217,6 +277,9 @@ export default class ShopboardPlugin extends Plugin {
 			if (view instanceof ShopDisplayView) {
 				await view.setShop(file);
 			}
+
+			// Automatically open DM control panel
+			await this.activateDMPanel();
 		} catch (error) {
 			console.error('Error displaying shop:', error);
 			new Notice('Failed to display shop. Check console for details.');
@@ -268,5 +331,110 @@ export default class ShopboardPlugin extends Plugin {
 			}
 		);
 		modal.open();
+	}
+
+	/**
+	 * Open shop builder modal for custom shop creation
+	 */
+	openShopBuilderModal(): void {
+		const modal = new ShopBuilderModal(
+			this.app,
+			this.shopGenerator,
+			this.settings,
+			async (file: TFile) => {
+				// Success callback
+				new Notice(`Shop created: ${file.basename}`);
+
+				// Open the newly created file
+				const leaf = this.app.workspace.getLeaf(false);
+				await leaf.openFile(file);
+
+				// Optionally, display the shop immediately
+				// await this.displayShop(file);
+			}
+		);
+		modal.open();
+	}
+
+	/**
+	 * Generate an AI image for an item
+	 */
+	async generateItemImage(file: TFile): Promise<void> {
+		try {
+			// Check if API key is configured
+			if (!this.imageGenerator.isConfigured()) {
+				new Notice('OpenAI API key not configured. Please add your API key in Shopboard settings.');
+				return;
+			}
+
+			// Validate item file
+			const cache = this.app.metadataCache.getFileCache(file);
+			if (!cache?.frontmatter || cache.frontmatter.type !== 'item') {
+				new Notice('This file is not a valid item note.');
+				return;
+			}
+
+			// Generate the image
+			await this.imageGenerator.generateImageForItem(file);
+		} catch (error) {
+			console.error('Error generating item image:', error);
+			new Notice('Failed to generate item image. Check console for details.');
+		}
+	}
+
+	/**
+	 * Show ribbon menu with shop creation options
+	 */
+	private showRibbonMenu(evt: MouseEvent): void {
+		const menu = new Menu();
+
+		menu.addItem((item) => {
+			item
+				.setTitle('Open Control Panel')
+				.setIcon('clipboard-list')
+				.onClick(async () => {
+					await this.activateDMPanel();
+				});
+		});
+
+		menu.addSeparator();
+
+		menu.addItem((item) => {
+			item
+				.setTitle('Create from Template')
+				.setIcon('file-plus')
+				.onClick(() => {
+					this.openTemplateModal();
+				});
+		});
+
+		menu.addItem((item) => {
+			item
+				.setTitle('Build Custom Shop')
+				.setIcon('wand-2')
+				.onClick(() => {
+					this.openShopBuilderModal();
+				});
+		});
+
+		menu.addSeparator();
+
+		menu.addItem((item) => {
+			item
+				.setTitle('Refresh Item Cache')
+				.setIcon('refresh-cw')
+				.onClick(async () => {
+					try {
+						await this.itemParser.scanItemFolders(this.settings.itemFolders);
+						const stats = this.itemParser.getCacheStats();
+						new Notice(`Item cache refreshed: ${stats.itemCount} items found`);
+					} catch (error) {
+						console.error('Error refreshing item cache:', error);
+						new Notice('Failed to refresh item cache');
+					}
+				});
+		});
+
+		menu.showAtMouseEvent(evt);
 	}
 }

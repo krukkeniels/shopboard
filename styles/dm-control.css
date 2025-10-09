@@ -130,7 +130,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.25rem;
-	margin-bottom: 0.75rem;
+	margin-bottom: 0.5rem;
 }
 
 .item-info .item-name {
@@ -158,6 +158,70 @@
 .item-info .item-warning {
 	font-size: 0.8rem;
 	color: var(--text-error);
+}
+
+/* ==========================================================================
+   Stock Controls
+   ========================================================================== */
+
+.stock-controls {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	margin-bottom: 0.75rem;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+}
+
+.stock-adjust-button {
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: 6px;
+	font-size: 1.2rem;
+	font-weight: 700;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.stock-adjust-button:hover:not(:disabled) {
+	background: var(--interactive-accent-hover);
+	transform: scale(1.1);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.stock-adjust-button:active:not(:disabled) {
+	transform: scale(0.95);
+}
+
+.stock-adjust-button:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.stock-display {
+	flex: 1;
+	text-align: center;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--text-normal);
+	min-width: 80px;
+}
+
+.stock-display.out-of-stock {
+	color: var(--text-error);
+	font-weight: 700;
 }
 
 /* ==========================================================================
@@ -252,6 +316,302 @@
 }
 
 .record-sale-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Price Modifier Controls
+   ========================================================================== */
+
+.modifier-controls {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 1rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.modifier-label {
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--text-normal);
+	flex-shrink: 0;
+}
+
+.modifier-input {
+	flex: 0 0 80px;
+	padding: 0.5rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9rem;
+	font-family: var(--font-interface);
+	text-align: center;
+	transition: border-color 0.2s ease;
+}
+
+.modifier-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.modifier-update-button {
+	padding: 0.5rem 1rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: 6px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+}
+
+.modifier-update-button:hover:not(:disabled) {
+	background: var(--interactive-accent-hover);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.modifier-update-button:active:not(:disabled) {
+	transform: translateY(0);
+}
+
+.modifier-update-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Display Mode Controls
+   ========================================================================== */
+
+.display-mode-controls {
+	margin-top: 1rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.display-mode-label {
+	display: block;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: 0.5rem;
+}
+
+.display-mode-buttons {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.5rem;
+}
+
+.display-mode-button {
+	padding: 0.6rem 0.75rem;
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	border: 2px solid var(--background-modifier-border);
+	border-radius: 6px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+	text-align: center;
+}
+
+.display-mode-button:hover:not(.display-mode-button-active) {
+	background: var(--interactive-hover);
+	border-color: var(--interactive-accent);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.display-mode-button:active {
+	transform: translateY(0);
+}
+
+.display-mode-button-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	font-weight: 700;
+}
+
+/* ==========================================================================
+   Pagination Controls
+   ========================================================================== */
+
+.pagination-controls {
+	margin-top: 1rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.pagination-label {
+	display: block;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: 0.5rem;
+}
+
+.pagination-buttons {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.pagination-button {
+	flex: 1;
+	padding: 0.6rem 0.75rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: 6px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+	text-align: center;
+}
+
+.pagination-button:hover:not(:disabled):not(.pagination-button-disabled) {
+	background: var(--interactive-accent-hover);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.pagination-button:active:not(:disabled):not(.pagination-button-disabled) {
+	transform: translateY(0);
+}
+
+.pagination-button:disabled,
+.pagination-button-disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+	background: var(--background-modifier-border);
+}
+
+.pagination-indicator {
+	flex: 0 0 auto;
+	padding: 0.6rem 1rem;
+	background: var(--background-secondary);
+	border: 2px solid var(--background-modifier-border);
+	border-radius: 6px;
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--text-normal);
+	text-align: center;
+	min-width: 100px;
+}
+
+/* ==========================================================================
+   Shop Actions Section
+   ========================================================================== */
+
+.shop-actions-section {
+	margin-bottom: 1rem;
+	padding-bottom: 1rem;
+	border-bottom: 2px solid var(--background-modifier-border);
+}
+
+.shop-actions-section h3 {
+	margin: 0 0 0.75rem 0;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-muted);
+}
+
+.action-buttons {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.5rem;
+}
+
+.action-button {
+	padding: 0.75rem;
+	border: none;
+	border-radius: 6px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+}
+
+.action-button.add-item-button {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.action-button.add-item-button:hover {
+	background: var(--interactive-accent-hover);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.action-button.restock-button {
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.action-button.restock-button:hover {
+	background: var(--interactive-hover);
+	border-color: var(--interactive-accent);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.action-button:active {
+	transform: translateY(0);
+}
+
+/* ==========================================================================
+   Remove Item Button
+   ========================================================================== */
+
+.remove-item-button {
+	width: 100%;
+	padding: 0.5rem 1rem;
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+	margin-top: 0.5rem;
+}
+
+.remove-item-button:hover:not(:disabled) {
+	background: var(--text-error);
+	color: var(--text-on-accent);
+	border-color: var(--text-error);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(255, 0, 0, 0.15);
+}
+
+.remove-item-button:active:not(:disabled) {
+	transform: translateY(0);
+}
+
+.remove-item-button:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }

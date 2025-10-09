@@ -5,7 +5,10 @@
 
 /* Common rarity */
 .shopboard-display .inventory-item.rarity-common {
-	border-left: 4px solid #9e9e9e !important;
+	border-left: 6px solid #9e9e9e !important;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15),
+		inset -2px 0 8px rgba(158, 158, 158, 0.1) !important;
 }
 
 .shopboard-display .inventory-item.rarity-common .item-rarity-badge {
@@ -15,7 +18,10 @@
 
 /* Uncommon rarity */
 .shopboard-display .inventory-item.rarity-uncommon {
-	border-left: 4px solid #4caf50 !important;
+	border-left: 6px solid #4caf50 !important;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15),
+		inset -2px 0 8px rgba(76, 175, 80, 0.1) !important;
 }
 
 .shopboard-display .inventory-item.rarity-uncommon .item-rarity-badge {
@@ -25,7 +31,10 @@
 
 /* Rare rarity */
 .shopboard-display .inventory-item.rarity-rare {
-	border-left: 4px solid #2196f3 !important;
+	border-left: 6px solid #2196f3 !important;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15),
+		inset -2px 0 8px rgba(33, 150, 243, 0.1) !important;
 }
 
 .shopboard-display .inventory-item.rarity-rare .item-rarity-badge {
@@ -35,7 +44,10 @@
 
 /* Very Rare rarity */
 .shopboard-display .inventory-item.rarity-very-rare {
-	border-left: 4px solid #9c27b0 !important;
+	border-left: 6px solid #9c27b0 !important;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15),
+		inset -2px 0 8px rgba(156, 39, 176, 0.1) !important;
 }
 
 .shopboard-display .inventory-item.rarity-very-rare .item-rarity-badge {
@@ -45,7 +57,10 @@
 
 /* Legendary rarity */
 .shopboard-display .inventory-item.rarity-legendary {
-	border-left: 4px solid #ff9800 !important;
+	border-left: 6px solid #ff9800 !important;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15),
+		inset -2px 0 8px rgba(255, 152, 0, 0.1) !important;
 }
 
 .shopboard-display .inventory-item.rarity-legendary .item-rarity-badge {
@@ -55,7 +70,10 @@
 
 /* Artifact rarity */
 .shopboard-display .inventory-item.rarity-artifact {
-	border-left: 4px solid #f44336 !important;
+	border-left: 6px solid #f44336 !important;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15),
+		inset -2px 0 8px rgba(244, 67, 54, 0.1) !important;
 }
 
 .shopboard-display .inventory-item.rarity-artifact .item-rarity-badge {
