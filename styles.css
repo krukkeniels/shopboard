@@ -77,14 +77,17 @@
 	height: 100%;
 	overflow: hidden; /* No scrolling - pagination instead */
 	background: var(--background-primary);
-	padding: 2rem;
+	padding: 0 !important;
 	display: flex;
 	flex-direction: column;
 }
 
 /* Main display wrapper */
 .shopboard-display {
-	margin: 0 auto;
+	width: 100%; /* Use full width */
+	height: 100%;
+	display: flex;
+	flex-direction: column;
 	font-family: var(--font-interface);
 }
 
@@ -93,127 +96,80 @@
    ========================================================================== */
 
 .shop-header {
-	text-align: center;
-	margin-bottom: 1.5rem;
-	padding: 1rem;
-	border-bottom: 3px double var(--background-modifier-border);
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 0.5rem;
+	padding: 1.5rem 1rem;
+	border-bottom: 2px solid var(--background-modifier-border);
 	position: relative;
+	min-height: 60px;
 }
 
 .shop-name {
-	font-size: 2.25rem;
+	font-size: 1.5rem;
 	font-weight: 700;
-	margin: 0 0 0.5rem 0;
+	margin: 0;
+	margin-left: 3rem;
 	color: var(--text-title-h1);
-	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+	text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 	font-family: var(--font-text);
 	letter-spacing: 0.05em;
+	flex: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .shop-type-badge {
 	display: inline-block;
-	padding: 0.5rem 1.5rem;
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-	border-radius: 20px;
-	font-size: 0.9rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.1em;
-	margin-top: 0.5rem;
-}
-
-.price-modifier-badge {
-	position: absolute;
-	top: 1rem;
-	right: 1rem;
-	padding: 0.5rem 1rem;
-	background: var(--background-modifier-warning);
-	color: var(--text-normal);
-	border-radius: 8px;
-	font-size: 0.85rem;
-	font-weight: 600;
-}
-
-.page-indicator {
-	position: absolute;
-	bottom: 0.5rem;
-	right: 1rem;
-	padding: 0.4rem 1rem;
+	padding: 0.25rem 0.75rem;
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 	border-radius: 12px;
-	font-size: 0.85rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	flex-shrink: 0;
+}
+
+.price-modifier-badge {
+	padding: 0.25rem 0.75rem;
+	background: var(--background-modifier-warning);
+	color: var(--text-normal);
+	border-radius: 8px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+.page-indicator {
+	padding: 0.25rem 0.75rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: 12px;
+	font-size: 0.75rem;
 	font-weight: 600;
 	opacity: 0.9;
+	flex-shrink: 0;
+	margin-left: auto;
 }
 
 /* ==========================================================================
-   Inventory Grid Layout (Fixed Cell Size)
+   Fixed Grid Layout - Maximizes Items Per Page
    ========================================================================== */
 
+/* Base grid container - columns set dynamically via inline style */
 .shop-inventory-grid {
 	display: grid;
 	grid-auto-flow: column; /* Fill DOWN first, then RIGHT */
-	gap: 1rem;
-	padding: 1.5rem;
-	overflow: hidden;
-	justify-content: start;
-	align-content: start;
-}
-
-/* Legacy column layout (fallback) */
-.shop-inventory {
-	columns: 2;
-	column-gap: 2rem;
+	gap: 0.5rem;
 	padding: 1rem;
 	overflow: hidden;
-	max-height: calc(100vh - 300px);
-}
-
-/* ==========================================================================
-   Dynamic Column Count Tiers (Restaurant Menu Style)
-   ========================================================================== */
-
-/* Size XLarge: 1-6 items - single column */
-.shop-inventory.size-xlarge {
-	columns: 1;
-	column-gap: 2rem;
-	padding: 1.5rem;
-}
-
-/* Size Large: 7-12 items - 2 columns */
-.shop-inventory.size-large {
-	columns: 2;
-	column-gap: 2rem;
-	padding: 1.25rem;
-}
-
-/* Size Medium: 13-20 items - 2 columns */
-.shop-inventory.size-medium {
-	columns: 2;
-	column-gap: 2rem;
-	padding: 1rem;
-}
-
-/* Size Small: 21-30 items - 3 columns */
-.shop-inventory.size-small {
-	columns: 3;
-	column-gap: 1.5rem;
-	padding: 0.75rem;
-}
-
-/* Size Tiny: 31-50 items - 3 columns, compact */
-.shop-inventory.size-tiny {
-	columns: 3;
-	column-gap: 1.5rem;
-	padding: 0.5rem;
-}
-
-/* Size Scrollable: 51+ items - 3 columns */
-.shop-inventory.size-scrollable {
-	columns: 3;
-	column-gap: 1.5rem;
+	flex: 1;
+	width: 100%;
+	/* grid-template-columns set via inline style */
 }
 
 .inventory-empty {
@@ -225,182 +181,251 @@
 }
 
 /* ==========================================================================
-   Inventory Items
+   Grid Items (Compact Fixed-Size Cells)
    ========================================================================== */
 
-.inventory-item {
-	background: linear-gradient(
-		135deg,
-		var(--background-secondary) 0%,
-		rgba(139, 92, 46, 0.03) 100%
-	);
-	border: 3px solid var(--background-modifier-border);
-	border-radius: 8px;
-	padding: 1.5rem;
-	position: relative;
-	overflow: visible;
-	box-shadow:
-		0 4px 12px rgba(0, 0, 0, 0.15),
-		inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.item-category-badge {
-	position: absolute;
-	top: 0.5rem;
-	right: 0.5rem;
-	padding: 0.2rem 0.6rem;
-	background: var(--background-modifier-border);
-	color: var(--text-muted);
-	border-radius: 8px;
-	font-size: 0.7rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	opacity: 0.7;
-	z-index: 5;
-}
-
-/* ==========================================================================
-   Grid Category Header Cell
-   ========================================================================== */
-
-.grid-category-header {
-	background: linear-gradient(
-		135deg,
-		var(--interactive-accent) 0%,
-		var(--interactive-accent-hover) 100%
-	);
-	color: var(--text-on-accent);
-	font-size: 1rem;
-	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: 0.1em;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 8px;
-	padding: 1rem;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-	text-align: center;
-}
-
-/* ==========================================================================
-   Grid Inventory Item Cell
-   ========================================================================== */
-
-.grid-inventory-item {
-	background: linear-gradient(
-		135deg,
-		var(--background-secondary) 0%,
-		rgba(139, 92, 46, 0.03) 100%
-	);
-	border: 3px solid var(--background-modifier-border);
-	border-radius: 8px;
-	padding: 0.75rem;
-	position: relative;
-	overflow: hidden;
-	box-shadow:
-		0 4px 12px rgba(0, 0, 0, 0.15),
-		inset 0 1px 0 rgba(255, 255, 255, 0.1);
+.grid-item {
+	background: var(--background-secondary);
+	border: 2px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 0.5rem;
 	display: flex;
 	flex-direction: column;
+	align-items: center; /* Center image horizontally */
+	justify-content: space-between;
+	overflow: hidden;
+	position: relative;
+	transition: all 0.2s ease;
 }
 
-.grid-inventory-item .item-image-container {
-	width: 100%;
-	height: 60%;
-	margin-bottom: 0.5rem;
+.grid-item:hover {
+	border-color: var(--interactive-accent);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.grid-item.inventory-item-selected {
+	border-color: var(--interactive-accent);
+	border-width: 3px;
+	background: linear-gradient(
+		135deg,
+		var(--background-secondary) 0%,
+		rgba(var(--interactive-accent-rgb, 88, 86, 214), 0.1) 100%
+	);
+}
+
+/* Grid item image - fills card height (square), size set dynamically via inline style */
+.grid-item-image {
+	width: 84px; /* Dynamic width via inline style */
+	height: 84px; /* Dynamic height via inline style */
+	margin: 0 0.5rem 0 0; /* Right margin for spacing */
 	border-radius: 4px;
 	overflow: hidden;
 	background: var(--background-primary-alt);
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	flex-shrink: 0;
 }
 
-.grid-inventory-item .item-image {
+.grid-item-image img {
 	width: 100%;
 	height: 100%;
-	object-fit: cover;
+	object-fit: contain; /* Maintain aspect ratio */
+	object-position: center;
 }
 
-.grid-inventory-item .item-content {
+.grid-item-image-error {
+	opacity: 0.3;
+	font-size: 1.5rem;
+}
+
+/* Image sizing is consistent across all column counts */
+
+/* ==========================================================================
+   Grid Item Layout Variants
+   ========================================================================== */
+
+/* Standard layout - Image top-left, content right, price bottom-right */
+.grid-item-standard {
+	align-items: flex-start !important;
+	flex-direction: row;
+	flex-wrap: wrap;
+	position: relative;
+}
+
+.grid-item-standard .grid-item-image {
+	margin: 0 0.5rem 0 0;
+	flex-shrink: 0;
+}
+
+.grid-item-standard .grid-item-content {
 	flex: 1;
+	text-align: left;
+	min-width: 0;
+}
+
+.grid-item-standard .grid-item-price {
+	position: absolute;
+	bottom: 0.5rem;
+	right: 0.5rem;
+	margin: 0;
+}
+
+/* List layout - Horizontal layout, image left, content left-aligned */
+.grid-item-list {
+	align-items: flex-start !important;
+	flex-direction: row;
+	position: relative;
+}
+
+.grid-item-list .grid-item-image {
+	margin: 0 0.5rem 0 0;
+	flex-shrink: 0;
+}
+
+.grid-item-list .grid-item-content {
+	flex: 1;
+	text-align: left;
+	min-width: 0;
+	padding-right: 3rem; /* Space for price */
+}
+
+.grid-item-list .grid-item-price {
+	position: absolute;
+	bottom: 0.5rem;
+	right: 0.5rem;
+	margin: 0;
+}
+
+/* Compact layout - Image top-left, content right, price bottom-right */
+.grid-item-compact {
+	align-items: flex-start !important;
+	flex-direction: row;
+	flex-wrap: wrap;
+	position: relative;
+	gap: 0.5rem;
+}
+
+.grid-item-compact .grid-item-image {
+	margin: 0;
+	flex-shrink: 0;
+	align-self: flex-start;
+}
+
+.grid-item-compact .grid-item-content {
+	flex: 1;
+	text-align: left;
+	min-width: 0;
+	padding-bottom: 1.5rem; /* Space for price at bottom */
+}
+
+.grid-item-compact .grid-item-price {
+	position: absolute;
+	bottom: 0.5rem;
+	right: 0.5rem;
+	margin: 0;
+}
+
+.grid-item-compact .grid-item-name {
+	white-space: normal; /* Allow wrapping */
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2; /* Max 2 lines for name */
+	-webkit-box-orient: vertical;
+}
+
+/* ==========================================================================
+   Grid Item Text Elements
+   ========================================================================== */
+
+/* Content wrapper */
+.grid-item-content {
 	display: flex;
 	flex-direction: column;
-	min-height: 0;
+	gap: 0.15rem;
 }
 
-.grid-inventory-item .item-name {
-	font-size: 0.95rem;
-	font-weight: 700;
-	margin-bottom: 0.25rem;
-	color: var(--text-title-h2);
-	line-height: 1.2;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-}
-
-.grid-inventory-item .item-description {
-	font-size: 0.75rem;
-	color: var(--text-muted);
-	margin-bottom: 0.5rem;
-	line-height: 1.3;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	flex: 1;
-}
-
-.grid-inventory-item .item-price {
-	position: absolute;
-	bottom: 0.5rem;
-	left: 0.5rem;
-	z-index: 10;
+/* Item name */
+.grid-item-name {
 	font-size: 0.85rem;
-	font-weight: 700;
-	font-family: var(--font-monospace);
-	background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
-	color: #ffffff;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-	padding: 0.25rem 0.5rem;
-	border-radius: 4px;
-	border: 2px solid #92400e;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.grid-inventory-item .item-price::before {
-	content: '🪙 ';
-	font-size: 0.9em;
-}
-
-.grid-inventory-item .item-quantity {
-	position: absolute;
-	bottom: 0.5rem;
-	right: 0.5rem;
-	font-size: 0.6rem;
-	color: var(--text-muted);
-	opacity: 0.6;
-	font-weight: 500;
-}
-
-.grid-inventory-item .item-rarity-badge {
-	position: absolute;
-	top: 0.5rem;
-	right: 0.5rem;
-	padding: 0.2rem 0.5rem;
-	border-radius: 8px;
-	font-size: 0.65rem;
 	font-weight: 600;
-	text-transform: capitalize;
-	background: var(--background-modifier-border);
 	color: var(--text-normal);
-	z-index: 5;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	margin: 0;
+}
+
+/* Item description */
+.grid-item-description {
+	font-size: 0.7rem;
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2; /* Max 2 lines */
+	-webkit-box-orient: vertical;
+	line-height: 1.2;
+	margin: 0;
+}
+
+/* Item price */
+.grid-item-price {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--interactive-accent);
+	font-family: var(--font-monospace);
+	text-align: center;
+	white-space: nowrap;
+}
+
+/* Stock indicator (top-right) */
+.grid-item-stock {
+	position: absolute;
+	top: 0.25rem;
+	right: 0.25rem;
+	font-size: 0.65rem;
+	font-weight: 700;
+	color: var(--text-error);
+	background: var(--background-primary);
+	padding: 0.1rem 0.3rem;
+	border-radius: 4px;
+	z-index: 1;
+}
+
+.grid-item-warning {
+	color: var(--text-error);
+	font-size: 1.2rem;
+	text-align: center;
+}
+
+/* Category header cells */
+.grid-category-header {
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 1rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-start;
+	border-radius: 6px;
+	border: none;
+	padding: 0.5rem;
+	text-align: left;
+}
+
+/* Cards category header - group title style */
+.grid-category-header-cards {
+	background: transparent;
+	border: none;
+	align-items: flex-end;
+	justify-content: flex-start;
+	padding: 0.25rem 0.5rem;
+	text-align: left;
 }
 
 /* Decorative top accent */
@@ -600,84 +625,10 @@
 }
 
 /* ==========================================================================
-   Category Sections
+   Legacy Category Sections (Deprecated - Using Grid Headers Now)
    ========================================================================== */
 
-.category-section {
-	break-inside: auto; /* Allow breaking across columns to eliminate gaps */
-	margin-bottom: 1.5rem;
-}
-
-.category-label {
-	font-size: 1.2rem;
-	font-weight: 600;
-	color: var(--text-muted);
-	margin: 0 0 0.75rem 0;
-	padding: 0;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-}
-
-.category-items {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-/* Items within categories - menu style */
-.category-items .inventory-item {
-	display: flex;
-	flex-direction: row;
-	align-items: flex-start;
-	gap: 0.75rem;
-	padding: 0.75rem;
-}
-
-.category-items .item-image-container {
-	width: 50px;
-	height: 50px;
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.category-items .item-content {
-	flex: 1;
-	min-width: 0;
-}
-
-.category-items .item-name {
-	font-size: 1rem;
-	margin-bottom: 0.25rem;
-	font-weight: 600;
-}
-
-.category-items .item-description {
-	font-size: 0.85rem;
-	margin-bottom: 0.35rem;
-	min-height: auto;
-	line-height: 1.4;
-}
-
-.category-items .item-price {
-	position: static;
-	transform: none;
-	margin: 0;
-	flex-shrink: 0;
-	font-size: 0.85rem;
-	padding: 0.25rem 0.5rem;
-	align-self: flex-start;
-}
-
-.category-items .item-quantity {
-	font-size: 0.7rem;
-	position: static;
-	opacity: 0.7;
-	margin: 0;
-}
-
-.category-items .item-rarity-badge {
-	display: none;
-}
+/* Removed - grid uses .grid-category-header instead */
 
 /* ==========================================================================
    Missing Items
@@ -1050,245 +1001,6 @@
 	}
 }
 
-/* ==========================================================================
-   List Layout Modes
-   ========================================================================== */
-
-/* 2-Column List Layout */
-.shop-inventory.layout-list-2col {
-	columns: 2;
-	column-gap: 0.75rem;
-	padding: 1rem;
-}
-
-.shop-inventory.layout-list-2col .inventory-item {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	padding: 0.75rem;
-	padding-right: 90px;
-	gap: 1rem;
-	position: relative;
-}
-
-.shop-inventory.layout-list-2col .item-content {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-width: 0;
-	justify-content: center;
-}
-
-.shop-inventory.layout-list-2col .item-image-container {
-	width: 80px;
-	height: 80px;
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.shop-inventory.layout-list-2col .item-name {
-	font-size: 1.1rem;
-	margin-bottom: 0.25rem;
-	display: -webkit-box;
-	-webkit-line-clamp: 3;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.shop-inventory.layout-list-2col .item-description {
-	font-size: 0.85rem;
-	margin-bottom: 0.5rem;
-	min-height: auto;
-	display: -webkit-box;
-	-webkit-line-clamp: 3;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.shop-inventory.layout-list-2col .item-price {
-	position: absolute;
-	top: 0.75rem;
-	left: auto;
-	right: 0.75rem;
-	transform: rotate(0deg);
-	margin: 0;
-	white-space: nowrap;
-	padding: 0.25rem 0.6rem;
-	font-size: 0.85rem;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.shop-inventory.layout-list-2col .item-quantity {
-	display: none;
-}
-
-.shop-inventory.layout-list-2col .item-rarity-badge {
-	display: none;
-}
-
-/* 3-Column List Layout */
-.shop-inventory.layout-list-3col {
-	columns: 3;
-	column-gap: 0.5rem;
-	padding: 0.75rem;
-}
-
-.shop-inventory.layout-list-3col .inventory-item {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	padding: 0.5rem;
-	padding-right: 80px;
-	gap: 0.75rem;
-	position: relative;
-}
-
-.shop-inventory.layout-list-3col .item-content {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-width: 0;
-	justify-content: center;
-}
-
-.shop-inventory.layout-list-3col .item-image-container {
-	width: 60px;
-	height: 60px;
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.shop-inventory.layout-list-3col .item-name {
-	font-size: 0.95rem;
-	margin-bottom: 0.2rem;
-	display: -webkit-box;
-	-webkit-line-clamp: 3;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.shop-inventory.layout-list-3col .item-description {
-	display: none; /* Hide descriptions in compact list */
-}
-
-.shop-inventory.layout-list-3col .item-price {
-	position: absolute;
-	top: 0.5rem;
-	left: auto;
-	right: 0.5rem;
-	transform: rotate(0deg);
-	margin: 0;
-	font-size: 0.75rem;
-	white-space: nowrap;
-	padding: 0.2rem 0.5rem;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.shop-inventory.layout-list-3col .item-quantity {
-	display: none;
-}
-
-.shop-inventory.layout-list-3col .item-rarity-badge {
-	display: none;
-}
-
-/* Dense List Layout */
-.shop-inventory.layout-dense-list {
-	columns: 4;
-	column-gap: 0.35rem;
-	padding: 0.5rem;
-}
-
-.shop-inventory.layout-dense-list .inventory-item {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	padding: 0.4rem;
-	gap: 0.5rem;
-	position: relative;
-}
-
-.shop-inventory.layout-dense-list .item-content {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-width: 0;
-	justify-content: center;
-}
-
-.shop-inventory.layout-dense-list .item-image-container {
-	width: 40px;
-	height: 40px;
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.shop-inventory.layout-dense-list .item-name {
-	font-size: 0.85rem;
-	margin-bottom: 0.1rem;
-}
-
-.shop-inventory.layout-dense-list .item-description {
-	display: none;
-}
-
-.shop-inventory.layout-dense-list .item-price {
-	position: static;
-	margin: 0;
-	transform: none;
-	font-size: 0.8rem;
-	padding: 0.2rem 0.4rem;
-}
-
-.shop-inventory.layout-dense-list .item-quantity {
-	display: none; /* Too compact for quantity */
-}
-
-.shop-inventory.layout-dense-list .item-rarity-badge {
-	display: none;
-}
-
-/* Gallery Layout */
-.shop-inventory.layout-gallery {
-	columns: 3;
-	column-gap: 1.5rem;
-	padding: 1.5rem;
-}
-
-.shop-inventory.layout-gallery .inventory-item {
-	display: flex;
-	flex-direction: column;
-	padding: 1rem;
-}
-
-.shop-inventory.layout-gallery .item-image-container {
-	width: 100%;
-	height: 300px;
-	margin-bottom: 1rem;
-}
-
-.shop-inventory.layout-gallery .item-name {
-	font-size: 1.3rem;
-	text-align: center;
-}
-
-.shop-inventory.layout-gallery .item-description {
-	display: none; /* Focus on images */
-}
-
-.shop-inventory.layout-gallery .item-price {
-	position: static;
-	align-self: center;
-	transform: none;
-	font-size: 1.1rem;
-}
-
-/* Table Layout - TODO: Implement table rendering */
-.shop-inventory.layout-table {
-	/* Will be implemented when table rendering is added */
-	display: block;
-	padding: 1rem;
-}
 
 /* ==========================================================================
    DM Control Panel - Styles
@@ -1909,6 +1621,346 @@
 }
 
 /* ==========================================================================
+   Inventory Search Field
+   ========================================================================== */
+
+.inventory-search-container {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.75rem;
+	padding: 0.5rem;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+}
+
+.inventory-search-input {
+	flex: 1;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9rem;
+	font-family: var(--font-interface);
+	transition: border-color 0.2s ease;
+}
+
+.inventory-search-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.inventory-search-input::placeholder {
+	color: var(--text-muted);
+}
+
+.search-clear-button {
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+	border: none;
+	border-radius: 4px;
+	font-size: 1.2rem;
+	font-weight: 700;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.search-clear-button:hover {
+	background: var(--text-error);
+	color: white;
+	transform: scale(1.1);
+}
+
+/* ==========================================================================
+   Inventory Table Layout
+   ========================================================================== */
+
+.inventory-table-container {
+	overflow-x: auto;
+	margin-top: 0.5rem;
+}
+
+.inventory-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: var(--background-secondary);
+	border-radius: 6px;
+	overflow: hidden;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-table thead {
+	background: var(--background-modifier-border);
+}
+
+.inventory-table th {
+	padding: 0.5rem;
+	text-align: left;
+	font-size: 0.75rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-muted);
+	border-bottom: 2px solid var(--background-modifier-border-hover);
+	white-space: nowrap;
+}
+
+.inventory-table tbody tr {
+	border-bottom: 1px solid var(--background-modifier-border);
+	transition: all 0.15s ease;
+}
+
+.inventory-table tbody tr:hover {
+	background: var(--interactive-hover);
+}
+
+.inventory-table tbody tr.item-row-selected {
+	background: linear-gradient(90deg,
+		rgba(88, 86, 214, 0.15) 0%,
+		rgba(88, 86, 214, 0.05) 100%) !important;
+	border-left: 4px solid var(--interactive-accent) !important;
+	position: relative;
+}
+
+.inventory-table tbody tr.item-missing {
+	opacity: 0.6;
+	background: var(--background-primary-alt);
+}
+
+.inventory-table td {
+	padding: 0.5rem;
+	font-size: 0.85rem;
+	color: var(--text-normal);
+	vertical-align: middle;
+}
+
+/* Table cell specific styles */
+.item-name-cell {
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.item-name-text {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.item-name-link {
+	cursor: pointer;
+	color: var(--link-color);
+	text-decoration: none;
+	transition: all 0.15s ease;
+}
+
+.item-name-link:hover {
+	text-decoration: underline;
+	color: var(--link-color-hover);
+}
+
+.category-cell {
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	text-transform: capitalize;
+	white-space: nowrap;
+}
+
+.price-cell {
+	font-weight: 700;
+	color: var(--interactive-accent);
+	font-family: var(--font-monospace);
+	white-space: nowrap;
+}
+
+.stock-cell {
+	min-width: 100px;
+}
+
+.actions-cell {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Stock Controls (Inline)
+   ========================================================================== */
+
+.stock-controls-inline {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	justify-content: center;
+}
+
+.stock-value {
+	min-width: 30px;
+	text-align: center;
+	font-weight: 600;
+	color: var(--text-normal);
+	font-size: 0.85rem;
+}
+
+.stock-value.out-of-stock {
+	color: var(--text-error);
+}
+
+/* ==========================================================================
+   Small Buttons
+   ========================================================================== */
+
+.btn-small {
+	padding: 0.3rem 0.6rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	font-family: var(--font-interface);
+	white-space: nowrap;
+}
+
+.btn-small:hover:not(:disabled) {
+	transform: translateY(-1px);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn-small:active:not(:disabled) {
+	transform: translateY(0);
+}
+
+.btn-small:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.btn-stock {
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-size: 0.9rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.btn-stock:hover:not(:disabled) {
+	background: var(--interactive-accent-hover);
+}
+
+.btn-primary {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+	background: var(--interactive-accent-hover);
+}
+
+.btn-danger {
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+}
+
+.btn-danger:hover:not(:disabled) {
+	background: var(--text-error);
+	color: white;
+}
+
+.btn-info {
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	position: relative;
+}
+
+.btn-info:hover:not(:disabled) {
+	background: var(--interactive-hover);
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+}
+
+.btn-info-active {
+	background: var(--interactive-accent) !important;
+	color: var(--text-on-accent) !important;
+	border-color: var(--interactive-accent) !important;
+	box-shadow: 0 0 12px rgba(88, 86, 214, 0.7), 0 0 24px rgba(88, 86, 214, 0.4) !important;
+	animation: pulse-info-button 2s ease-in-out infinite;
+	transform: scale(1.15);
+	font-weight: 800;
+	z-index: 10;
+}
+
+.btn-info-active::after {
+	content: '👁️';
+	position: absolute;
+	top: -8px;
+	right: -8px;
+	font-size: 0.9rem;
+	background: var(--interactive-accent);
+	border-radius: 50%;
+	width: 18px;
+	height: 18px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.btn-info-active:hover:not(:disabled) {
+	background: var(--interactive-accent-hover) !important;
+	box-shadow: 0 0 16px rgba(88, 86, 214, 0.9), 0 0 30px rgba(88, 86, 214, 0.5) !important;
+	animation: pulse-info-button 1s ease-in-out infinite;
+	transform: scale(1.18);
+}
+
+@keyframes pulse-info-button {
+	0%, 100% {
+		box-shadow: 0 0 12px rgba(88, 86, 214, 0.7), 0 0 24px rgba(88, 86, 214, 0.4);
+	}
+	50% {
+		box-shadow: 0 0 20px rgba(88, 86, 214, 1), 0 0 35px rgba(88, 86, 214, 0.6);
+	}
+}
+
+.input-small {
+	width: 50px;
+	padding: 0.25rem 0.4rem;
+	font-size: 0.75rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-family: var(--font-interface);
+	text-align: center;
+}
+
+.input-small:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.qty-input {
+	width: 45px;
+}
+
+/* ==========================================================================
    Responsive Design
    ========================================================================== */
 
@@ -1935,6 +1987,42 @@
 	.record-sale-button {
 		width: 100%;
 	}
+
+	.inventory-table {
+		font-size: 0.75rem;
+	}
+
+	.inventory-table th,
+	.inventory-table td {
+		padding: 0.35rem 0.25rem;
+	}
+
+	.item-name-cell {
+		max-width: 120px;
+	}
+
+	.actions-cell {
+		flex-direction: column;
+		gap: 0.25rem;
+		align-items: stretch;
+	}
+
+	.btn-small {
+		padding: 0.25rem 0.4rem;
+		font-size: 0.7rem;
+	}
+
+	.input-small {
+		width: 100%;
+	}
+
+	.qty-input {
+		width: 100%;
+	}
+
+	.stock-cell {
+		min-width: 80px;
+	}
 }
 
 /* Very narrow */
@@ -1945,6 +2033,17 @@
 
 	.item-info .item-name {
 		font-size: 0.9rem;
+	}
+
+	/* Hide category column on very narrow screens */
+	.inventory-table th:nth-child(2),
+	.inventory-table td:nth-child(2) {
+		display: none;
+	}
+
+	.item-name-cell {
+		max-width: 100px;
+		font-size: 0.7rem;
 	}
 }
 

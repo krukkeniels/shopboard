@@ -1,5 +1,4 @@
 import { App, TFile } from 'obsidian';
-import { DisplayMode } from '../types';
 
 /**
  * Shop Modifier - Handles editing shop properties and inventory
@@ -47,28 +46,17 @@ export class ShopModifier {
 	}
 
 	/**
-	 * Update shop display mode
+	 * Update shop column count
 	 * @param shopFile Shop note file
-	 * @param displayMode New display mode
+	 * @param columns New column count (2-8)
 	 */
-	async updateDisplayMode(
+	async updateColumns(
 		shopFile: TFile,
-		displayMode: DisplayMode
+		columns: number
 	): Promise<void> {
-		// Validate display mode
-		const validModes: DisplayMode[] = [
-			'standard',
-			'large-cards',
-			'compact-cards',
-			'list-2col',
-			'list-3col',
-			'dense-list',
-			'gallery',
-			'table'
-		];
-
-		if (!validModes.includes(displayMode)) {
-			throw new Error(`Invalid display mode: ${displayMode}`);
+		// Validate column count
+		if (!Number.isInteger(columns) || columns < 2 || columns > 8) {
+			throw new Error('Column count must be an integer between 2 and 8');
 		}
 
 		// Read current file content
@@ -81,14 +69,48 @@ export class ShopModifier {
 			throw new Error('Shop note has no frontmatter');
 		}
 
-		// Update display mode
-		frontmatter.display_mode = displayMode;
+		// Update columns
+		frontmatter.columns = columns;
 
 		// Serialize back to YAML and write
 		const updatedContent = this.serializeFrontmatter(frontmatter, body);
 		await this.app.vault.modify(shopFile, updatedContent);
 
-		console.log(`Display mode updated to: ${displayMode}`);
+		console.log(`Columns updated to: ${columns}`);
+	}
+
+	/**
+	 * Update whether to show item descriptions
+	 * @param shopFile Shop note file
+	 * @param showDescriptions Whether to show descriptions
+	 */
+	async updateShowDescriptions(
+		shopFile: TFile,
+		showDescriptions: boolean
+	): Promise<void> {
+		// Validate boolean
+		if (typeof showDescriptions !== 'boolean') {
+			throw new Error('showDescriptions must be a boolean');
+		}
+
+		// Read current file content
+		const content = await this.app.vault.read(shopFile);
+
+		// Parse frontmatter
+		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
+
+		if (!frontmatter) {
+			throw new Error('Shop note has no frontmatter');
+		}
+
+		// Update showDescriptions
+		frontmatter.show_descriptions = showDescriptions;
+
+		// Serialize back to YAML and write
+		const updatedContent = this.serializeFrontmatter(frontmatter, body);
+		await this.app.vault.modify(shopFile, updatedContent);
+
+		console.log(`Show descriptions updated to: ${showDescriptions}`);
 	}
 
 	/**

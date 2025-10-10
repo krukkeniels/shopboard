@@ -8,14 +8,17 @@
 	height: 100%;
 	overflow: hidden; /* No scrolling - pagination instead */
 	background: var(--background-primary);
-	padding: 2rem;
+	padding: 0 !important;
 	display: flex;
 	flex-direction: column;
 }
 
 /* Main display wrapper */
 .shopboard-display {
-	margin: 0 auto;
+	width: 100%; /* Use full width */
+	height: 100%;
+	display: flex;
+	flex-direction: column;
 	font-family: var(--font-interface);
 }
 
@@ -24,116 +27,80 @@
    ========================================================================== */
 
 .shop-header {
-	text-align: center;
-	margin-bottom: 1.5rem;
-	padding: 1rem;
-	border-bottom: 3px double var(--background-modifier-border);
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 0.5rem;
+	padding: 1.5rem 1rem;
+	border-bottom: 2px solid var(--background-modifier-border);
 	position: relative;
+	min-height: 60px;
 }
 
 .shop-name {
-	font-size: 2.25rem;
+	font-size: 1.5rem;
 	font-weight: 700;
-	margin: 0 0 0.5rem 0;
+	margin: 0;
+	margin-left: 3rem;
 	color: var(--text-title-h1);
-	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+	text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 	font-family: var(--font-text);
 	letter-spacing: 0.05em;
+	flex: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .shop-type-badge {
 	display: inline-block;
-	padding: 0.5rem 1.5rem;
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-	border-radius: 20px;
-	font-size: 0.9rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.1em;
-	margin-top: 0.5rem;
-}
-
-.price-modifier-badge {
-	position: absolute;
-	top: 1rem;
-	right: 1rem;
-	padding: 0.5rem 1rem;
-	background: var(--background-modifier-warning);
-	color: var(--text-normal);
-	border-radius: 8px;
-	font-size: 0.85rem;
-	font-weight: 600;
-}
-
-.page-indicator {
-	position: absolute;
-	bottom: 0.5rem;
-	right: 1rem;
-	padding: 0.4rem 1rem;
+	padding: 0.25rem 0.75rem;
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 	border-radius: 12px;
-	font-size: 0.85rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	flex-shrink: 0;
+}
+
+.price-modifier-badge {
+	padding: 0.25rem 0.75rem;
+	background: var(--background-modifier-warning);
+	color: var(--text-normal);
+	border-radius: 8px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+.page-indicator {
+	padding: 0.25rem 0.75rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: 12px;
+	font-size: 0.75rem;
 	font-weight: 600;
 	opacity: 0.9;
+	flex-shrink: 0;
+	margin-left: auto;
 }
 
 /* ==========================================================================
-   Inventory Column Layout (Restaurant Menu Style)
+   Fixed Grid Layout - Maximizes Items Per Page
    ========================================================================== */
 
-.shop-inventory {
-	columns: 2;
-	column-gap: 2rem;
+/* Base grid container - columns set dynamically via inline style */
+.shop-inventory-grid {
+	display: grid;
+	grid-auto-flow: column; /* Fill DOWN first, then RIGHT */
+	gap: 0.5rem;
 	padding: 1rem;
-	overflow: hidden; /* No vertical scrolling - pagination instead */
-	max-height: calc(100vh - 300px); /* Limit height to prevent overflow */
-}
-
-/* ==========================================================================
-   Dynamic Column Count Tiers (Restaurant Menu Style)
-   ========================================================================== */
-
-/* Size XLarge: 1-6 items - single column */
-.shop-inventory.size-xlarge {
-	columns: 1;
-	column-gap: 2rem;
-	padding: 1.5rem;
-}
-
-/* Size Large: 7-12 items - 2 columns */
-.shop-inventory.size-large {
-	columns: 2;
-	column-gap: 2rem;
-	padding: 1.25rem;
-}
-
-/* Size Medium: 13-20 items - 2 columns */
-.shop-inventory.size-medium {
-	columns: 2;
-	column-gap: 2rem;
-	padding: 1rem;
-}
-
-/* Size Small: 21-30 items - 3 columns */
-.shop-inventory.size-small {
-	columns: 3;
-	column-gap: 1.5rem;
-	padding: 0.75rem;
-}
-
-/* Size Tiny: 31-50 items - 3 columns, compact */
-.shop-inventory.size-tiny {
-	columns: 3;
-	column-gap: 1.5rem;
-	padding: 0.5rem;
-}
-
-/* Size Scrollable: 51+ items - 3 columns */
-.shop-inventory.size-scrollable {
-	columns: 3;
-	column-gap: 1.5rem;
+	overflow: hidden;
+	flex: 1;
+	width: 100%;
+	/* grid-template-columns set via inline style */
 }
 
 .inventory-empty {
@@ -145,39 +112,251 @@
 }
 
 /* ==========================================================================
-   Inventory Items
+   Grid Items (Compact Fixed-Size Cells)
    ========================================================================== */
 
-.inventory-item {
+.grid-item {
+	background: var(--background-secondary);
+	border: 2px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 0.5rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center; /* Center image horizontally */
+	justify-content: space-between;
+	overflow: hidden;
+	position: relative;
+	transition: all 0.2s ease;
+}
+
+.grid-item:hover {
+	border-color: var(--interactive-accent);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.grid-item.inventory-item-selected {
+	border-color: var(--interactive-accent);
+	border-width: 3px;
 	background: linear-gradient(
 		135deg,
 		var(--background-secondary) 0%,
-		rgba(139, 92, 46, 0.03) 100%
+		rgba(var(--interactive-accent-rgb, 88, 86, 214), 0.1) 100%
 	);
-	border: 3px solid var(--background-modifier-border);
-	border-radius: 8px;
-	padding: 1.5rem;
-	position: relative;
-	overflow: visible;
-	box-shadow:
-		0 4px 12px rgba(0, 0, 0, 0.15),
-		inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.item-category-badge {
+/* Grid item image - fills card height (square), size set dynamically via inline style */
+.grid-item-image {
+	width: 84px; /* Dynamic width via inline style */
+	height: 84px; /* Dynamic height via inline style */
+	margin: 0 0.5rem 0 0; /* Right margin for spacing */
+	border-radius: 4px;
+	overflow: hidden;
+	background: var(--background-primary-alt);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.grid-item-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain; /* Maintain aspect ratio */
+	object-position: center;
+}
+
+.grid-item-image-error {
+	opacity: 0.3;
+	font-size: 1.5rem;
+}
+
+/* Image sizing is consistent across all column counts */
+
+/* ==========================================================================
+   Grid Item Layout Variants
+   ========================================================================== */
+
+/* Standard layout - Image top-left, content right, price bottom-right */
+.grid-item-standard {
+	align-items: flex-start !important;
+	flex-direction: row;
+	flex-wrap: wrap;
+	position: relative;
+}
+
+.grid-item-standard .grid-item-image {
+	margin: 0 0.5rem 0 0;
+	flex-shrink: 0;
+}
+
+.grid-item-standard .grid-item-content {
+	flex: 1;
+	text-align: left;
+	min-width: 0;
+}
+
+.grid-item-standard .grid-item-price {
 	position: absolute;
-	top: 0.5rem;
+	bottom: 0.5rem;
 	right: 0.5rem;
-	padding: 0.2rem 0.6rem;
-	background: var(--background-modifier-border);
-	color: var(--text-muted);
-	border-radius: 8px;
-	font-size: 0.7rem;
+	margin: 0;
+}
+
+/* List layout - Horizontal layout, image left, content left-aligned */
+.grid-item-list {
+	align-items: flex-start !important;
+	flex-direction: row;
+	position: relative;
+}
+
+.grid-item-list .grid-item-image {
+	margin: 0 0.5rem 0 0;
+	flex-shrink: 0;
+}
+
+.grid-item-list .grid-item-content {
+	flex: 1;
+	text-align: left;
+	min-width: 0;
+	padding-right: 3rem; /* Space for price */
+}
+
+.grid-item-list .grid-item-price {
+	position: absolute;
+	bottom: 0.5rem;
+	right: 0.5rem;
+	margin: 0;
+}
+
+/* Compact layout - Image top-left, content right, price bottom-right */
+.grid-item-compact {
+	align-items: flex-start !important;
+	flex-direction: row;
+	flex-wrap: wrap;
+	position: relative;
+	gap: 0.5rem;
+}
+
+.grid-item-compact .grid-item-image {
+	margin: 0;
+	flex-shrink: 0;
+	align-self: flex-start;
+}
+
+.grid-item-compact .grid-item-content {
+	flex: 1;
+	text-align: left;
+	min-width: 0;
+	padding-bottom: 1.5rem; /* Space for price at bottom */
+}
+
+.grid-item-compact .grid-item-price {
+	position: absolute;
+	bottom: 0.5rem;
+	right: 0.5rem;
+	margin: 0;
+}
+
+.grid-item-compact .grid-item-name {
+	white-space: normal; /* Allow wrapping */
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2; /* Max 2 lines for name */
+	-webkit-box-orient: vertical;
+}
+
+/* ==========================================================================
+   Grid Item Text Elements
+   ========================================================================== */
+
+/* Content wrapper */
+.grid-item-content {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+}
+
+/* Item name */
+.grid-item-name {
+	font-size: 0.85rem;
 	font-weight: 600;
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	margin: 0;
+}
+
+/* Item description */
+.grid-item-description {
+	font-size: 0.7rem;
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2; /* Max 2 lines */
+	-webkit-box-orient: vertical;
+	line-height: 1.2;
+	margin: 0;
+}
+
+/* Item price */
+.grid-item-price {
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--interactive-accent);
+	font-family: var(--font-monospace);
+	text-align: center;
+	white-space: nowrap;
+}
+
+/* Stock indicator (top-right) */
+.grid-item-stock {
+	position: absolute;
+	top: 0.25rem;
+	right: 0.25rem;
+	font-size: 0.65rem;
+	font-weight: 700;
+	color: var(--text-error);
+	background: var(--background-primary);
+	padding: 0.1rem 0.3rem;
+	border-radius: 4px;
+	z-index: 1;
+}
+
+.grid-item-warning {
+	color: var(--text-error);
+	font-size: 1.2rem;
+	text-align: center;
+}
+
+/* Category header cells */
+.grid-category-header {
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 1rem;
+	font-weight: 700;
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	opacity: 0.7;
-	z-index: 5;
+	letter-spacing: 0.1em;
+	display: flex;
+	align-items: flex-end;
+	justify-content: flex-start;
+	border-radius: 6px;
+	border: none;
+	padding: 0.5rem;
+	text-align: left;
+}
+
+/* Cards category header - group title style */
+.grid-category-header-cards {
+	background: transparent;
+	border: none;
+	align-items: flex-end;
+	justify-content: flex-start;
+	padding: 0.25rem 0.5rem;
+	text-align: left;
 }
 
 /* Decorative top accent */
@@ -377,84 +556,10 @@
 }
 
 /* ==========================================================================
-   Category Sections
+   Legacy Category Sections (Deprecated - Using Grid Headers Now)
    ========================================================================== */
 
-.category-section {
-	break-inside: auto; /* Allow breaking across columns to eliminate gaps */
-	margin-bottom: 1.5rem;
-}
-
-.category-label {
-	font-size: 1.2rem;
-	font-weight: 600;
-	color: var(--text-muted);
-	margin: 0 0 0.75rem 0;
-	padding: 0;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-}
-
-.category-items {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-}
-
-/* Items within categories - menu style */
-.category-items .inventory-item {
-	display: flex;
-	flex-direction: row;
-	align-items: flex-start;
-	gap: 0.75rem;
-	padding: 0.75rem;
-}
-
-.category-items .item-image-container {
-	width: 50px;
-	height: 50px;
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.category-items .item-content {
-	flex: 1;
-	min-width: 0;
-}
-
-.category-items .item-name {
-	font-size: 1rem;
-	margin-bottom: 0.25rem;
-	font-weight: 600;
-}
-
-.category-items .item-description {
-	font-size: 0.85rem;
-	margin-bottom: 0.35rem;
-	min-height: auto;
-	line-height: 1.4;
-}
-
-.category-items .item-price {
-	position: static;
-	transform: none;
-	margin: 0;
-	flex-shrink: 0;
-	font-size: 0.85rem;
-	padding: 0.25rem 0.5rem;
-	align-self: flex-start;
-}
-
-.category-items .item-quantity {
-	font-size: 0.7rem;
-	position: static;
-	opacity: 0.7;
-	margin: 0;
-}
-
-.category-items .item-rarity-badge {
-	display: none;
-}
+/* Removed - grid uses .grid-category-header instead */
 
 /* ==========================================================================
    Missing Items
@@ -827,242 +932,3 @@
 	}
 }
 
-/* ==========================================================================
-   List Layout Modes
-   ========================================================================== */
-
-/* 2-Column List Layout */
-.shop-inventory.layout-list-2col {
-	columns: 2;
-	column-gap: 0.75rem;
-	padding: 1rem;
-}
-
-.shop-inventory.layout-list-2col .inventory-item {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	padding: 0.75rem;
-	padding-right: 90px;
-	gap: 1rem;
-	position: relative;
-}
-
-.shop-inventory.layout-list-2col .item-content {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-width: 0;
-	justify-content: center;
-}
-
-.shop-inventory.layout-list-2col .item-image-container {
-	width: 80px;
-	height: 80px;
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.shop-inventory.layout-list-2col .item-name {
-	font-size: 1.1rem;
-	margin-bottom: 0.25rem;
-	display: -webkit-box;
-	-webkit-line-clamp: 3;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.shop-inventory.layout-list-2col .item-description {
-	font-size: 0.85rem;
-	margin-bottom: 0.5rem;
-	min-height: auto;
-	display: -webkit-box;
-	-webkit-line-clamp: 3;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.shop-inventory.layout-list-2col .item-price {
-	position: absolute;
-	top: 0.75rem;
-	left: auto;
-	right: 0.75rem;
-	transform: rotate(0deg);
-	margin: 0;
-	white-space: nowrap;
-	padding: 0.25rem 0.6rem;
-	font-size: 0.85rem;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.shop-inventory.layout-list-2col .item-quantity {
-	display: none;
-}
-
-.shop-inventory.layout-list-2col .item-rarity-badge {
-	display: none;
-}
-
-/* 3-Column List Layout */
-.shop-inventory.layout-list-3col {
-	columns: 3;
-	column-gap: 0.5rem;
-	padding: 0.75rem;
-}
-
-.shop-inventory.layout-list-3col .inventory-item {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	padding: 0.5rem;
-	padding-right: 80px;
-	gap: 0.75rem;
-	position: relative;
-}
-
-.shop-inventory.layout-list-3col .item-content {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-width: 0;
-	justify-content: center;
-}
-
-.shop-inventory.layout-list-3col .item-image-container {
-	width: 60px;
-	height: 60px;
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.shop-inventory.layout-list-3col .item-name {
-	font-size: 0.95rem;
-	margin-bottom: 0.2rem;
-	display: -webkit-box;
-	-webkit-line-clamp: 3;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.shop-inventory.layout-list-3col .item-description {
-	display: none; /* Hide descriptions in compact list */
-}
-
-.shop-inventory.layout-list-3col .item-price {
-	position: absolute;
-	top: 0.5rem;
-	left: auto;
-	right: 0.5rem;
-	transform: rotate(0deg);
-	margin: 0;
-	font-size: 0.75rem;
-	white-space: nowrap;
-	padding: 0.2rem 0.5rem;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.shop-inventory.layout-list-3col .item-quantity {
-	display: none;
-}
-
-.shop-inventory.layout-list-3col .item-rarity-badge {
-	display: none;
-}
-
-/* Dense List Layout */
-.shop-inventory.layout-dense-list {
-	columns: 4;
-	column-gap: 0.35rem;
-	padding: 0.5rem;
-}
-
-.shop-inventory.layout-dense-list .inventory-item {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	padding: 0.4rem;
-	gap: 0.5rem;
-	position: relative;
-}
-
-.shop-inventory.layout-dense-list .item-content {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	min-width: 0;
-	justify-content: center;
-}
-
-.shop-inventory.layout-dense-list .item-image-container {
-	width: 40px;
-	height: 40px;
-	margin: 0;
-	flex-shrink: 0;
-}
-
-.shop-inventory.layout-dense-list .item-name {
-	font-size: 0.85rem;
-	margin-bottom: 0.1rem;
-}
-
-.shop-inventory.layout-dense-list .item-description {
-	display: none;
-}
-
-.shop-inventory.layout-dense-list .item-price {
-	position: static;
-	margin: 0;
-	transform: none;
-	font-size: 0.8rem;
-	padding: 0.2rem 0.4rem;
-}
-
-.shop-inventory.layout-dense-list .item-quantity {
-	display: none; /* Too compact for quantity */
-}
-
-.shop-inventory.layout-dense-list .item-rarity-badge {
-	display: none;
-}
-
-/* Gallery Layout */
-.shop-inventory.layout-gallery {
-	columns: 3;
-	column-gap: 1.5rem;
-	padding: 1.5rem;
-}
-
-.shop-inventory.layout-gallery .inventory-item {
-	display: flex;
-	flex-direction: column;
-	padding: 1rem;
-}
-
-.shop-inventory.layout-gallery .item-image-container {
-	width: 100%;
-	height: 300px;
-	margin-bottom: 1rem;
-}
-
-.shop-inventory.layout-gallery .item-name {
-	font-size: 1.3rem;
-	text-align: center;
-}
-
-.shop-inventory.layout-gallery .item-description {
-	display: none; /* Focus on images */
-}
-
-.shop-inventory.layout-gallery .item-price {
-	position: static;
-	align-self: center;
-	transform: none;
-	font-size: 1.1rem;
-}
-
-/* Table Layout - TODO: Implement table rendering */
-.shop-inventory.layout-table {
-	/* Will be implemented when table rendering is added */
-	display: block;
-	padding: 1rem;
-}

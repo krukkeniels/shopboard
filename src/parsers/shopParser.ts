@@ -1,5 +1,5 @@
 import { App, TFile } from 'obsidian';
-import { ShopData, ShopInventoryItem, DisplayMode } from '../types';
+import { ShopData, ShopInventoryItem } from '../types';
 import { ItemParser } from './itemParser';
 
 /**
@@ -43,7 +43,8 @@ export class ShopParser {
 				shopType: fm.shop_type,
 				priceModifier: fm.price_modifier || 0,
 				inventory: [],
-				displayMode: fm.display_mode as DisplayMode | undefined,
+				columns: fm.columns || 4, // Default to 4 columns
+				showDescriptions: fm.show_descriptions !== undefined ? fm.show_descriptions : true, // Default to true
 				currentPage: fm.current_page || 1,
 				metadata: { ...fm }
 			};

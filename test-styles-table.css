@@ -1,0 +1,401 @@
+/* ==========================================================================
+   Search Field
+   ========================================================================== */
+
+.inventory-search-container {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.75rem;
+	padding: 0.5rem;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+}
+
+.inventory-search-input {
+	flex: 1;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9rem;
+	font-family: var(--font-interface);
+	transition: border-color 0.2s ease;
+}
+
+.inventory-search-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.inventory-search-input::placeholder {
+	color: var(--text-muted);
+}
+
+.search-clear-button {
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+	border: none;
+	border-radius: 4px;
+	font-size: 1.2rem;
+	font-weight: 700;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.search-clear-button:hover {
+	background: var(--text-error);
+	color: white;
+	transform: scale(1.1);
+}
+
+/* ==========================================================================
+   Inventory Table Layout
+   ========================================================================== */
+
+.inventory-table-container {
+	overflow-x: auto;
+	margin-top: 0.5rem;
+}
+
+.inventory-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: var(--background-secondary);
+	border-radius: 6px;
+	overflow: hidden;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-table thead {
+	background: var(--background-modifier-border);
+}
+
+.inventory-table th {
+	padding: 0.5rem;
+	text-align: left;
+	font-size: 0.75rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-muted);
+	border-bottom: 2px solid var(--background-modifier-border-hover);
+	white-space: nowrap;
+}
+
+.inventory-table tbody tr {
+	border-bottom: 1px solid var(--background-modifier-border);
+	transition: all 0.15s ease;
+}
+
+.inventory-table tbody tr:hover {
+	background: var(--interactive-hover);
+}
+
+.inventory-table tbody tr.item-row-selected {
+	background: linear-gradient(90deg,
+		rgba(88, 86, 214, 0.15) 0%,
+		rgba(88, 86, 214, 0.05) 100%) !important;
+	border-left: 4px solid var(--interactive-accent) !important;
+	position: relative;
+}
+
+.inventory-table tbody tr.item-row-selected::before {
+	content: '👁️';
+	position: absolute;
+	left: 0.5rem;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 1rem;
+	animation: pulse-eye 2s ease-in-out infinite;
+}
+
+@keyframes pulse-eye {
+	0%, 100% {
+		opacity: 0.7;
+		transform: translateY(-50%) scale(1);
+	}
+	50% {
+		opacity: 1;
+		transform: translateY(-50%) scale(1.2);
+	}
+}
+
+.inventory-table tbody tr.item-missing {
+	opacity: 0.6;
+	background: var(--background-primary-alt);
+}
+
+.inventory-table td {
+	padding: 0.5rem;
+	font-size: 0.85rem;
+	color: var(--text-normal);
+	vertical-align: middle;
+}
+
+/* Table cell specific styles */
+.item-name-cell {
+	max-width: 200px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	padding-left: 2rem !important; /* Space for eye icon */
+}
+
+.item-name-text {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.category-cell {
+	color: var(--text-muted);
+	font-size: 0.8rem;
+	text-transform: capitalize;
+	white-space: nowrap;
+}
+
+.price-cell {
+	font-weight: 700;
+	color: var(--interactive-accent);
+	font-family: var(--font-monospace);
+	white-space: nowrap;
+}
+
+.stock-cell {
+	min-width: 100px;
+}
+
+.actions-cell {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Stock Controls (Inline)
+   ========================================================================== */
+
+.stock-controls-inline {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	justify-content: center;
+}
+
+.stock-value {
+	min-width: 30px;
+	text-align: center;
+	font-weight: 600;
+	color: var(--text-normal);
+	font-size: 0.85rem;
+}
+
+.stock-value.out-of-stock {
+	color: var(--text-error);
+}
+
+/* ==========================================================================
+   Small Buttons
+   ========================================================================== */
+
+.btn-small {
+	padding: 0.3rem 0.6rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	font-family: var(--font-interface);
+	white-space: nowrap;
+}
+
+.btn-small:hover:not(:disabled) {
+	transform: translateY(-1px);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.btn-small:active:not(:disabled) {
+	transform: translateY(0);
+}
+
+.btn-small:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.btn-stock {
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	font-size: 0.9rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+}
+
+.btn-stock:hover:not(:disabled) {
+	background: var(--interactive-accent-hover);
+}
+
+.btn-primary {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+	background: var(--interactive-accent-hover);
+}
+
+.btn-danger {
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+}
+
+.btn-danger:hover:not(:disabled) {
+	background: var(--text-error);
+	color: white;
+}
+
+.btn-info {
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+	position: relative;
+}
+
+.btn-info:hover:not(:disabled) {
+	background: var(--interactive-hover);
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+}
+
+.btn-info-active {
+	background: var(--interactive-accent) !important;
+	color: var(--text-on-accent) !important;
+	border-color: var(--interactive-accent) !important;
+	box-shadow: 0 0 12px rgba(88, 86, 214, 0.7), 0 0 24px rgba(88, 86, 214, 0.4) !important;
+	animation: pulse-info-button 2s ease-in-out infinite;
+	transform: scale(1.15);
+	font-weight: 800;
+	z-index: 10;
+}
+
+.btn-info-active::after {
+	content: '👁️';
+	position: absolute;
+	top: -8px;
+	right: -8px;
+	font-size: 0.9rem;
+	background: var(--interactive-accent);
+	border-radius: 50%;
+	width: 18px;
+	height: 18px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.btn-info-active:hover:not(:disabled) {
+	background: var(--interactive-accent-hover) !important;
+	box-shadow: 0 0 16px rgba(88, 86, 214, 0.9), 0 0 30px rgba(88, 86, 214, 0.5) !important;
+	animation: pulse-info-button 1s ease-in-out infinite;
+	transform: scale(1.18);
+}
+
+@keyframes pulse-info-button {
+	0%, 100% {
+		box-shadow: 0 0 12px rgba(88, 86, 214, 0.7), 0 0 24px rgba(88, 86, 214, 0.4);
+	}
+	50% {
+		box-shadow: 0 0 20px rgba(88, 86, 214, 1), 0 0 35px rgba(88, 86, 214, 0.6);
+	}
+}
+
+.input-small {
+	width: 50px;
+	padding: 0.25rem 0.4rem;
+	font-size: 0.75rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-family: var(--font-interface);
+	text-align: center;
+}
+
+.input-small:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.qty-input {
+	width: 45px;
+}
+
+/* Responsive adjustments for table */
+@media (max-width: 400px) {
+	.inventory-table {
+		font-size: 0.75rem;
+	}
+
+	.inventory-table th,
+	.inventory-table td {
+		padding: 0.35rem 0.25rem;
+	}
+
+	.item-name-cell {
+		max-width: 120px;
+	}
+
+	.actions-cell {
+		flex-direction: column;
+		gap: 0.25rem;
+		align-items: stretch;
+	}
+
+	.btn-small {
+		padding: 0.25rem 0.4rem;
+		font-size: 0.7rem;
+	}
+
+	.input-small {
+		width: 100%;
+	}
+
+	.qty-input {
+		width: 100%;
+	}
+
+	.stock-cell {
+		min-width: 80px;
+	}
+}
+
+@media (max-width: 300px) {
+	/* Hide category column on very narrow screens */
+	.inventory-table th:nth-child(2),
+	.inventory-table td:nth-child(2) {
+		display: none;
+	}
+
+	.item-name-cell {
+		max-width: 100px;
+		font-size: 0.7rem;
+	}
+}

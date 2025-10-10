@@ -2,12 +2,16 @@
  * Core type definitions for Shopboard plugin
  */
 
+import { TFile } from 'obsidian';
+
 /**
  * Item data structure representing an item note
  */
 export interface ItemData {
 	/** File path of the item note */
 	path: string;
+	/** TFile reference to the item note */
+	file?: TFile;
 	/** Display name of the item */
 	name: string;
 	/** Base price in smallest currency denomination (e.g., copper pieces) */
@@ -54,8 +58,10 @@ export interface ShopData {
 	priceModifier: number;
 	/** Shop inventory with resolved items */
 	inventory: ShopInventoryItem[];
-	/** Display mode for shop view */
-	displayMode?: DisplayMode;
+	/** Number of columns for shop display grid (defaults to 4) */
+	columns?: number;
+	/** Show item descriptions in display (defaults to true) */
+	showDescriptions?: boolean;
 	/** Current page for paginated display (defaults to 1) */
 	currentPage?: number;
 	/** Additional metadata from frontmatter */
@@ -166,19 +172,6 @@ export type RarityLevel = 'common' | 'uncommon' | 'rare' | 'very rare' | 'legend
  * Image generation style options for DALL-E
  */
 export type ImageStyle = 'realistic' | 'fantasy-painting' | 'digital-art' | 'isometric' | 'sketch';
-
-/**
- * Display mode options for shop inventory view
- */
-export type DisplayMode =
-	| 'standard'       // Auto-sizing grid based on item count
-	| 'large-cards'    // 2-3 columns, large cards
-	| 'compact-cards'  // 5-6 columns, small cards
-	| 'list-2col'      // 2-column list format
-	| 'list-3col'      // 3-column list format
-	| 'dense-list'     // Multi-column compact list
-	| 'gallery'        // Image-focused display
-	| 'table';         // Spreadsheet-style table
 
 /**
  * Shop size presets

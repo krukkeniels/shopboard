@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, TFile, Notice } from 'obsidian';
-import { ShopData, ShopInventoryItem, DisplayMode } from '../types';
+import { ShopData, ShopInventoryItem } from '../types';
 import ShopboardPlugin from '../main';
 import { AddItemModal } from '../modals/addItemModal';
 import { RestockModal } from '../modals/restockModal';
@@ -18,9 +18,12 @@ export class DMControlView extends ItemView {
 	private currentShop: ShopData | null = null;
 	private currentShopFile: TFile | null = null;
 	private selectedItemPath: string | null = null;
-	private currentDisplayMode: DisplayMode = 'standard';
+	private currentColumns: number = 4;
+	private currentShowDescriptions: boolean = true;
 	private modifyDebounceTimer: number | null = null;
 	private isUpdating: boolean = false;
+	private searchQuery: string = '';
+	private searchInputCursorPosition: number | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ShopboardPlugin) {
 		super(leaf);
@@ -89,23 +92,29 @@ export class DMControlView extends ItemView {
 			})
 		);
 
-		// Listen for item detail events to track selected item
+		// Listen for item detail events to sync with shop display view
+		// Note: Currently this event is only triggered by handleShowItemDetail in this view,
+		// which already updates selectedItemPath before triggering. So this listener is primarily
+		// for keeping state in sync if other sources start triggering this event in the future.
 		this.registerEvent(
 			this.app.workspace.on('shopboard:show-item-detail', (itemData: any) => {
-				// Toggle selection
-				if (this.selectedItemPath === itemData.path) {
-					this.selectedItemPath = null;
-				} else {
-					this.selectedItemPath = itemData.path;
-				}
+				// Do nothing - handleShowItemDetail already manages selectedItemPath before triggering this event
+				// If in the future other views trigger this event, we can add sync logic here
+			})
+		);
+
+		// Listen for column change events from display view
+		this.registerEvent(
+			this.app.workspace.on('shopboard:columns-changed', (columns: number) => {
+				this.currentColumns = columns;
 				this.render();
 			})
 		);
 
-		// Listen for display mode change events from display view
+		// Listen for show descriptions toggle events from display view
 		this.registerEvent(
-			this.app.workspace.on('shopboard:display-mode-changed', (mode: DisplayMode) => {
-				this.currentDisplayMode = mode;
+			this.app.workspace.on('shopboard:show-descriptions-changed', (show: boolean) => {
+				this.currentShowDescriptions = show;
 				this.render();
 			})
 		);
@@ -142,10 +151,13 @@ export class DMControlView extends ItemView {
 					this.currentShopFile = shopFile;
 					this.currentShop = shopData;
 
-					// Sync display mode from display view
-					if ('getDisplayMode' in view) {
-						this.currentDisplayMode = (view as any).getDisplayMode();
+					// Sync columns from display view
+					if ('getColumns' in view) {
+						this.currentColumns = (view as any).getColumns();
 					}
+
+					// Sync showDescriptions from shop data
+					this.currentShowDescriptions = shopData.showDescriptions ?? true;
 
 					this.render();
 				}
@@ -228,8 +240,11 @@ export class DMControlView extends ItemView {
 		// Price modifier controls
 		this.renderPriceModifierControls(headerEl);
 
-		// Display mode controls
-		this.renderDisplayModeControls(headerEl);
+		// Column controls
+		this.renderColumnControls(headerEl);
+
+		// Description toggle
+		this.renderDescriptionToggle(headerEl);
 
 		// Pagination controls
 		this.renderPaginationControls(headerEl);
@@ -315,65 +330,129 @@ export class DMControlView extends ItemView {
 	}
 
 	/**
-	 * Render display mode controls for player display
+	 * Render column controls for player display
 	 */
-	private renderDisplayModeControls(container: HTMLElement): void {
-		const modeContainer = container.createDiv({ cls: 'display-mode-controls' });
+	private renderColumnControls(container: HTMLElement): void {
+		const columnContainer = container.createDiv({ cls: 'column-controls' });
 
-		modeContainer.createEl('label', {
-			text: 'Display Mode:',
-			cls: 'display-mode-label'
+		columnContainer.createEl('label', {
+			text: 'Display Columns:',
+			cls: 'column-label'
 		});
 
-		// Display mode buttons grid
-		const buttonsGrid = modeContainer.createDiv({ cls: 'display-mode-buttons' });
+		const controlsRow = columnContainer.createDiv({ cls: 'column-controls-row' });
 
-		// Define main display modes
-		const displayModes: Array<{ mode: DisplayMode; label: string }> = [
-			{ mode: 'standard', label: 'Standard' },
-			{ mode: 'list-2col', label: 'List' },
-			{ mode: 'list-3col', label: 'Compact List' },
-			{ mode: 'compact-cards', label: 'Compact' }
-		];
+		// Decrease button
+		const decreaseButton = controlsRow.createEl('button', {
+			text: '−',
+			cls: 'column-adjust-button'
+		});
 
-		// Render mode buttons
-		for (const { mode, label } of displayModes) {
-			const button = buttonsGrid.createEl('button', {
-				text: label,
-				cls: 'display-mode-button'
-			});
-
-			// Add active class if current mode
-			if (this.currentDisplayMode === mode) {
-				button.addClass('display-mode-button-active');
-			}
-
-			// Disable button if currently updating
-			if (this.isUpdating) {
-				button.disabled = true;
-			}
-
-			button.addEventListener('click', async () => {
-				await this.handleDisplayModeChange(mode);
-			});
+		// Disable if at minimum
+		if (this.currentColumns <= 2) {
+			decreaseButton.disabled = true;
 		}
+
+		decreaseButton.addEventListener('click', async () => {
+			await this.handleColumnsChange(this.currentColumns - 1);
+		});
+
+		// Column count display
+		controlsRow.createDiv({
+			cls: 'column-display',
+			text: `${this.currentColumns} columns`
+		});
+
+		// Increase button
+		const increaseButton = controlsRow.createEl('button', {
+			text: '+',
+			cls: 'column-adjust-button'
+		});
+
+		// Disable if at maximum
+		if (this.currentColumns >= 8) {
+			increaseButton.disabled = true;
+		}
+
+		increaseButton.addEventListener('click', async () => {
+			await this.handleColumnsChange(this.currentColumns + 1);
+		});
 	}
 
 	/**
-	 * Handle display mode change
+	 * Handle column count change
 	 */
-	private async handleDisplayModeChange(mode: DisplayMode): Promise<void> {
+	private async handleColumnsChange(columns: number): Promise<void> {
+		// Validate range
+		columns = Math.max(2, Math.min(8, columns));
+
 		// Set updating flag to prevent race conditions
 		this.isUpdating = true;
 
 		try {
 			// Update local tracking
-			this.currentDisplayMode = mode;
+			this.currentColumns = columns;
 
 			// Trigger event for display view
-			this.app.workspace.trigger('shopboard:set-display-mode', mode);
+			this.app.workspace.trigger('shopboard:set-columns', columns);
 
 			// Re-render to update button states
+			this.render();
+
+			// Wait a bit for async operations to complete
+			await new Promise(resolve => setTimeout(resolve, 100));
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Render description toggle control
+	 */
+	private renderDescriptionToggle(container: HTMLElement): void {
+		const toggleContainer = container.createDiv({ cls: 'description-toggle-controls' });
+
+		toggleContainer.createEl('label', {
+			text: 'Show Descriptions:',
+			cls: 'description-toggle-label'
+		});
+
+		const toggleRow = toggleContainer.createDiv({ cls: 'description-toggle-row' });
+
+		// Toggle checkbox
+		const checkbox = toggleRow.createEl('input', {
+			type: 'checkbox',
+			cls: 'description-toggle-checkbox'
+		});
+
+		checkbox.checked = this.currentShowDescriptions;
+
+		checkbox.addEventListener('change', async () => {
+			await this.handleDescriptionToggle(checkbox.checked);
+		});
+
+		// Label for checkbox
+		toggleRow.createSpan({
+			cls: 'description-toggle-text',
+			text: this.currentShowDescriptions ? 'Enabled' : 'Disabled'
+		});
+	}
+
+	/**
+	 * Handle description toggle change
+	 */
+	private async handleDescriptionToggle(show: boolean): Promise<void> {
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		try {
+			// Update local tracking
+			this.currentShowDescriptions = show;
+
+			// Trigger event for display view
+			this.app.workspace.trigger('shopboard:set-show-descriptions', show);
+
+			// Re-render to update toggle state
 			this.render();
 
 			// Wait a bit for async operations to complete
@@ -628,11 +707,22 @@ export class DMControlView extends ItemView {
 			const itemFiles = new Map<string, TFile>();
 
 			for (const invItem of this.currentShop.inventory) {
-				if (invItem.itemData && invItem.itemData.file) {
-					// Use file path as key to avoid duplicates
-					const filePath = invItem.itemData.file.path;
-					if (!itemFiles.has(filePath)) {
-						itemFiles.set(filePath, invItem.itemData.file);
+				if (invItem.itemData) {
+					// Get the TFile - either from itemData.file or by looking up the path
+					let itemFile = invItem.itemData.file;
+					if (!itemFile) {
+						const file = this.app.vault.getAbstractFileByPath(invItem.itemData.path);
+						if (file instanceof TFile) {
+							itemFile = file;
+						}
+					}
+
+					if (itemFile) {
+						// Use file path as key to avoid duplicates
+						const filePath = itemFile.path;
+						if (!itemFiles.has(filePath)) {
+							itemFiles.set(filePath, itemFile);
+						}
 					}
 				}
 			}
@@ -658,6 +748,8 @@ export class DMControlView extends ItemView {
 					const result = await this.plugin.imageGenerator.generateImageForItem(itemFile);
 					if (result) {
 						successCount++;
+						// Refresh the item cache so the new image appears immediately
+						await this.plugin.itemParser.refreshItem(itemFile);
 					} else {
 						failCount++;
 					}
@@ -691,6 +783,70 @@ export class DMControlView extends ItemView {
 	}
 
 	/**
+	 * Handle generating an image for a single item
+	 */
+	private async handleGenerateItemImage(invItem: ShopInventoryItem, button: HTMLButtonElement): Promise<void> {
+		// Check if item has valid data
+		if (!invItem.itemData) {
+			new Notice('Cannot generate image for this item - item data not found.');
+			return;
+		}
+
+		// Check if API key is configured
+		if (!this.plugin.imageGenerator.isConfigured()) {
+			new Notice('OpenAI API key not configured. Please add your API key in Shopboard settings.');
+			return;
+		}
+
+		// Get the TFile - either from itemData.file or by looking up the path
+		let itemFile = invItem.itemData.file;
+		if (!itemFile) {
+			const file = this.app.vault.getAbstractFileByPath(invItem.itemData.path);
+			if (file instanceof TFile) {
+				itemFile = file;
+			}
+		}
+
+		if (!itemFile) {
+			new Notice('Cannot find item file for image generation.');
+			return;
+		}
+
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		// Disable button during processing
+		button.disabled = true;
+		const originalText = button.textContent;
+		button.textContent = '⏳';
+
+		try {
+			const result = await this.plugin.imageGenerator.generateImageForItem(itemFile);
+
+			if (result) {
+				new Notice(`Successfully generated image for ${invItem.itemData.name}!`);
+
+				// Refresh the item cache so the new image appears immediately
+				await this.plugin.itemParser.refreshItem(itemFile);
+
+				// Re-sync to update display with new image
+				await this.syncWithShop(this.currentShopFile!);
+			} else {
+				new Notice(`Failed to generate image for ${invItem.itemData.name}. Check console for details.`);
+			}
+
+		} catch (error) {
+			console.error('Error generating item image:', error);
+			new Notice(`Failed to generate image. See console for details.`);
+		} finally {
+			// Re-enable button
+			button.disabled = false;
+			button.textContent = originalText || '🎨';
+			this.isUpdating = false;
+		}
+	}
+
+	/**
 	 * Render inventory controls
 	 */
 	private renderInventoryControls(container: HTMLElement): void {
@@ -704,26 +860,124 @@ export class DMControlView extends ItemView {
 			return;
 		}
 
-		// Create sorted array with original indices preserved
-		const sortedInventory = this.currentShop!.inventory
-			.map((invItem, index) => ({ invItem, index }))
-			.sort((a, b) => a.invItem.calculatedPrice - b.invItem.calculatedPrice);
-
-		// Render control for each item (sorted by price, lowest first)
-		sortedInventory.forEach(({ invItem, index }) => {
-			this.renderItemControl(inventoryEl, invItem, index);
+		// Add search field
+		const searchContainer = inventoryEl.createDiv({ cls: 'inventory-search-container' });
+		const searchInput = searchContainer.createEl('input', {
+			type: 'text',
+			cls: 'inventory-search-input',
+			placeholder: 'Search items...',
+			value: this.searchQuery
 		});
+
+		// Restore cursor position if we have one
+		if (this.searchInputCursorPosition !== null) {
+			searchInput.setSelectionRange(this.searchInputCursorPosition, this.searchInputCursorPosition);
+			searchInput.focus();
+			this.searchInputCursorPosition = null;
+		}
+
+		searchInput.addEventListener('input', () => {
+			// Save cursor position before render
+			this.searchInputCursorPosition = searchInput.selectionStart;
+			this.searchQuery = searchInput.value;
+			this.render();
+		});
+
+		// Clear search button
+		if (this.searchQuery) {
+			const clearButton = searchContainer.createEl('button', {
+				text: '×',
+				cls: 'search-clear-button'
+			});
+			clearButton.addEventListener('click', () => {
+				this.searchQuery = '';
+				this.searchInputCursorPosition = null;
+				this.render();
+			});
+		}
+
+		// Filter items by search query
+		const filteredInventory = this.currentShop!.inventory
+			.map((invItem, index) => ({ invItem, index }))
+			.filter(({ invItem }) => {
+				if (!this.searchQuery) return true;
+				const itemName = invItem.itemData?.name || invItem.itemRef;
+				return itemName.toLowerCase().includes(this.searchQuery.toLowerCase());
+			});
+
+		if (filteredInventory.length === 0) {
+			inventoryEl.createDiv({
+				cls: 'inventory-empty',
+				text: 'No items match your search'
+			});
+			return;
+		}
+
+		// Group items by category (matching player view)
+		const itemsByCategory = new Map<string, typeof filteredInventory>();
+
+		for (const item of filteredInventory) {
+			const rawType = item.invItem.itemData?.metadata?.item_type || 'uncategorized';
+			const category = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+
+			if (!itemsByCategory.has(category)) {
+				itemsByCategory.set(category, []);
+			}
+			itemsByCategory.get(category)!.push(item);
+		}
+
+		// Sort each category's items by price (lowest first)
+		for (const items of itemsByCategory.values()) {
+			items.sort((a, b) => a.invItem.calculatedPrice - b.invItem.calculatedPrice);
+		}
+
+		// Sort categories alphabetically, but put "Uncategorized" at the end
+		const sortedCategories = Array.from(itemsByCategory.keys()).sort((a, b) => {
+			if (a === 'Uncategorized') return 1;
+			if (b === 'Uncategorized') return -1;
+			return a.localeCompare(b);
+		});
+
+		// Create table
+		const tableContainer = inventoryEl.createDiv({ cls: 'inventory-table-container' });
+		const table = tableContainer.createEl('table', { cls: 'inventory-table' });
+
+		// Table header
+		const thead = table.createEl('thead');
+		const headerRow = thead.createEl('tr');
+		headerRow.createEl('th', { text: 'Item' });
+		headerRow.createEl('th', { text: 'Category' });
+		headerRow.createEl('th', { text: 'Price' });
+		headerRow.createEl('th', { text: 'Stock' });
+		headerRow.createEl('th', { text: 'Actions' });
+
+		// Table body
+		const tbody = table.createEl('tbody');
+
+		// Render items by category
+		for (const category of sortedCategories) {
+			const categoryItems = itemsByCategory.get(category)!;
+
+			for (const { invItem, index } of categoryItems) {
+				this.renderItemRow(tbody, invItem, index, category);
+			}
+		}
 	}
 
 	/**
-	 * Render control for a single inventory item
+	 * Render a single inventory item as a table row
 	 */
-	private renderItemControl(container: HTMLElement, invItem: ShopInventoryItem, index: number): void {
-		const controlEl = container.createDiv({ cls: 'control-item' });
+	private renderItemRow(tbody: HTMLElement, invItem: ShopInventoryItem, index: number, category: string): void {
+		const row = tbody.createEl('tr', { cls: 'inventory-item-row' });
 
 		// Handle missing item data
 		if (!invItem.itemData) {
-			this.renderMissingItemControl(controlEl, invItem);
+			row.addClass('item-missing');
+			row.createEl('td', { text: invItem.itemRef });
+			row.createEl('td', { text: category });
+			row.createEl('td', { text: '—' });
+			row.createEl('td', { text: '—' });
+			row.createEl('td', { text: '⚠️ Not found' });
 			return;
 		}
 
@@ -731,130 +985,124 @@ export class DMControlView extends ItemView {
 
 		// Add selected class if this item is selected
 		if (this.selectedItemPath === item.path) {
-			controlEl.addClass('control-item-selected');
+			row.addClass('item-row-selected');
 		}
 
-		// Item info section
-		const infoEl = controlEl.createDiv({ cls: 'item-info' });
+		// Item name column
+		const nameCell = row.createEl('td', { cls: 'item-name-cell' });
+		const nameLink = nameCell.createSpan({ cls: 'item-name-text item-name-link', text: item.name });
 
-		// Item name
-		infoEl.createSpan({
-			cls: 'item-name',
-			text: item.name
+		// Make name clickable to open the item note
+		nameLink.addEventListener('click', async () => {
+			const itemFile = item.file || this.app.vault.getAbstractFileByPath(item.path);
+			if (itemFile instanceof TFile) {
+				await this.app.workspace.getLeaf(false).openFile(itemFile);
+			} else {
+				new Notice('Could not open item note');
+			}
 		});
 
-		// Price display
+		// Category column
+		row.createEl('td', { text: category, cls: 'category-cell' });
+
+		// Price column
 		const priceText = this.plugin.priceCalculator.formatCurrency(invItem.calculatedPrice);
-		infoEl.createDiv({
-			cls: 'item-price-small',
-			text: priceText
-		});
+		row.createEl('td', { text: priceText, cls: 'price-cell' });
 
-		// Stock controls section
-		const stockControlsEl = controlEl.createDiv({ cls: 'stock-controls' });
+		// Stock column with controls
+		const stockCell = row.createEl('td', { cls: 'stock-cell' });
+		const stockControls = stockCell.createDiv({ cls: 'stock-controls-inline' });
 
 		// Decrement button
-		const decrementButton = stockControlsEl.createEl('button', {
-			cls: 'stock-adjust-button stock-decrement',
-			text: '−'
+		const decrementButton = stockControls.createEl('button', {
+			cls: 'btn-small btn-stock',
+			text: '−',
+			attr: { title: 'Decrease stock' }
 		});
-
 		decrementButton.addEventListener('click', async () => {
 			await this.handleStockDecrement(index, invItem, decrementButton);
 		});
 
 		// Stock display
-		const stockText = invItem.quantity === 0 ? 'Out of stock' : `Stock: ${invItem.quantity}`;
-		const stockEl = stockControlsEl.createSpan({
-			cls: 'stock-display',
-			text: stockText
+		const stockSpan = stockControls.createSpan({
+			cls: 'stock-value',
+			text: invItem.quantity.toString()
 		});
-
 		if (invItem.quantity === 0) {
-			stockEl.addClass('out-of-stock');
+			stockSpan.addClass('out-of-stock');
 		}
 
 		// Increment button
-		const incrementButton = stockControlsEl.createEl('button', {
-			cls: 'stock-adjust-button stock-increment',
-			text: '+'
+		const incrementButton = stockControls.createEl('button', {
+			cls: 'btn-small btn-stock',
+			text: '+',
+			attr: { title: 'Increase stock' }
 		});
-
 		incrementButton.addEventListener('click', async () => {
 			await this.handleStockIncrement(index, invItem, incrementButton);
 		});
 
-		// Action controls section
-		const controlsEl = controlEl.createDiv({ cls: 'action-controls' });
+		// Actions column
+		const actionsCell = row.createEl('td', { cls: 'actions-cell' });
 
-		// More Info button
-		const infoButton = controlsEl.createEl('button', {
-			cls: 'info-button',
-			text: 'More Info'
+		// Info button (first action)
+		const infoButtonClass = this.selectedItemPath === item.path
+			? 'btn-small btn-info btn-info-active'
+			: 'btn-small btn-info';
+		const infoButton = actionsCell.createEl('button', {
+			cls: infoButtonClass,
+			text: 'ℹ️',
+			attr: { title: 'More Info' }
 		});
-
-		// Info button click handler
 		infoButton.addEventListener('click', () => {
 			this.handleShowItemDetail(invItem);
 		});
 
-		// Purchase controls section (only if item is in stock)
-		if (invItem.quantity > 0) {
-			const purchaseEl = controlsEl.createDiv({ cls: 'purchase-controls' });
+		// Generate Image button
+		const generateImageButton = actionsCell.createEl('button', {
+			cls: 'btn-small btn-generate-image',
+			text: '🎨',
+			attr: { title: 'Generate Image' }
+		});
+		generateImageButton.addEventListener('click', async () => {
+			await this.handleGenerateItemImage(invItem, generateImageButton);
+		});
 
-			// Quantity input
-			const quantityInput = purchaseEl.createEl('input', {
+		// Purchase controls (only if item is in stock)
+		if (invItem.quantity > 0) {
+			const quantityInput = actionsCell.createEl('input', {
 				type: 'number',
-				cls: 'quantity-input',
+				cls: 'input-small qty-input',
 				attr: {
 					min: '1',
 					max: invItem.quantity.toString(),
-					value: '1'
+					value: '1',
+					title: 'Quantity to sell'
 				}
 			});
 
-			// Record sale button
-			const recordButton = purchaseEl.createEl('button', {
-				cls: 'record-sale-button',
-				text: 'Record Sale'
+			const recordButton = actionsCell.createEl('button', {
+				cls: 'btn-small btn-primary',
+				text: 'Sell',
+				attr: { title: 'Record sale' }
 			});
-
-			// Button click handler
 			recordButton.addEventListener('click', async () => {
 				const quantity = parseInt(quantityInput.value);
 				await this.handlePurchase(index, quantity, recordButton, quantityInput);
 			});
 		}
 
-		// Remove item button
-		const removeButton = controlsEl.createEl('button', {
-			cls: 'remove-item-button',
-			text: '🗑️ Remove'
+		// Remove button
+		const removeButton = actionsCell.createEl('button', {
+			cls: 'btn-small btn-danger',
+			text: '🗑️',
+			attr: { title: 'Remove item' }
 		});
-
 		removeButton.addEventListener('click', async () => {
 			await this.handleRemoveItem(index, invItem, removeButton);
 		});
 	}
 
-	/**
-	 * Render control for missing item
-	 */
-	private renderMissingItemControl(container: HTMLElement, invItem: ShopInventoryItem): void {
-		container.addClass('item-missing');
-
-		const infoEl = container.createDiv({ cls: 'item-info' });
-
-		infoEl.createSpan({
-			cls: 'item-name',
-			text: invItem.itemRef
-		});
-
-		infoEl.createSpan({
-			cls: 'item-warning',
-			text: '⚠️ Item not found'
-		});
-	}
 
 	/**
 	 * Handle showing item detail
@@ -864,6 +1112,16 @@ export class DMControlView extends ItemView {
 			new Notice('Item data not available');
 			return;
 		}
+
+		// Toggle selection directly
+		if (this.selectedItemPath === invItem.itemData.path) {
+			this.selectedItemPath = null;
+		} else {
+			this.selectedItemPath = invItem.itemData.path;
+		}
+
+		// Re-render to update button styling immediately
+		this.render();
 
 		// Trigger event for shop display to show item detail
 		this.app.workspace.trigger('shopboard:show-item-detail', invItem.itemData);

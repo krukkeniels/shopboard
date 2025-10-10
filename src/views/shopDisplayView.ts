@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer } from 'obsidian';
-import { ShopData, ItemData, DisplayMode } from '../types';
+import { ShopData, ItemData } from '../types';
 import ShopboardPlugin from '../main';
 
 /**
@@ -70,10 +70,17 @@ export class ShopDisplayView extends ItemView {
 			})
 		);
 
-		// Listen for display mode change events from DM control
+		// Listen for column change events from DM control
 		this.registerEvent(
-			this.app.workspace.on('shopboard:set-display-mode', (mode: DisplayMode) => {
-				this.setDisplayMode(mode);
+			this.app.workspace.on('shopboard:set-columns', (columns: number) => {
+				this.setColumns(columns);
+			})
+		);
+
+		// Listen for show descriptions toggle from DM control
+		this.registerEvent(
+			this.app.workspace.on('shopboard:set-show-descriptions', (show: boolean) => {
+				this.setShowDescriptions(show);
 			})
 		);
 
@@ -131,9 +138,50 @@ export class ShopDisplayView extends ItemView {
 	}
 
 	/**
-	 * Set display mode for the shop
+	 * Set columns for the shop display
 	 */
-	async setDisplayMode(mode: DisplayMode): Promise<void> {
+	async setColumns(columns: number): Promise<void> {
+		if (!this.shopData || !this.shopFile) {
+			return;
+		}
+
+		// Validate column count (2-8)
+		columns = Math.max(2, Math.min(8, columns));
+
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		try {
+			// Update shop data
+			this.shopData.columns = columns;
+
+			// Recalculate items per page for new column count
+			this.itemsPerPage = this.calculateItemsPerPage();
+
+			// Reset to page 1 when changing columns
+			this.currentPage = 1;
+			this.shopData.currentPage = 1;
+
+			// Re-render to apply new columns
+			this.render();
+
+			// Save to shop frontmatter
+			await this.plugin.shopModifier.updateColumns(this.shopFile, columns);
+			await this.plugin.shopModifier.updateCurrentPage(this.shopFile, 1);
+
+			// Notify DM control of column change
+			this.app.workspace.trigger('shopboard:columns-changed', columns);
+		} catch (error) {
+			console.error('Error updating columns:', error);
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Set whether to show item descriptions
+	 */
+	async setShowDescriptions(show: boolean): Promise<void> {
 		if (!this.shopData || !this.shopFile) {
 			return;
 		}
@@ -143,26 +191,18 @@ export class ShopDisplayView extends ItemView {
 
 		try {
 			// Update shop data
-			this.shopData.displayMode = mode;
+			this.shopData.showDescriptions = show;
 
-			// Recalculate items per page for new display mode
-			this.itemsPerPage = this.calculateItemsPerPage();
-
-			// Reset to page 1 when changing display modes
-			this.currentPage = 1;
-			this.shopData.currentPage = 1;
-
-			// Re-render to apply new display mode
+			// Re-render to show/hide descriptions
 			this.render();
 
 			// Save to shop frontmatter
-			await this.plugin.shopModifier.updateDisplayMode(this.shopFile, mode);
-			await this.plugin.shopModifier.updateCurrentPage(this.shopFile, 1);
+			await this.plugin.shopModifier.updateShowDescriptions(this.shopFile, show);
 
-			// Notify DM control of display mode change
-			this.app.workspace.trigger('shopboard:display-mode-changed', mode);
+			// Notify DM control of change
+			this.app.workspace.trigger('shopboard:show-descriptions-changed', show);
 		} catch (error) {
-			console.error('Error updating display mode:', error);
+			console.error('Error updating show descriptions:', error);
 		} finally {
 			this.isUpdating = false;
 		}
@@ -203,14 +243,14 @@ export class ShopDisplayView extends ItemView {
 	}
 
 	/**
-	 * Get current display mode
+	 * Get current column count
 	 */
-	getDisplayMode(): DisplayMode {
-		return this.shopData?.displayMode || 'standard';
+	getColumns(): number {
+		return this.shopData?.columns || 4;
 	}
 
 	/**
-	 * Calculate total pages based on items per page
+	 * Calculate total pages based on total cells (items + category headers)
 	 */
 	private calculateTotalPages(): number {
 		if (!this.shopData) return 1;
@@ -218,65 +258,69 @@ export class ShopDisplayView extends ItemView {
 		const availableItems = this.shopData.inventory.filter(item => item.quantity > 0);
 		if (availableItems.length === 0) return 1;
 
-		return Math.ceil(availableItems.length / this.itemsPerPage);
+		// Count unique categories
+		const categories = new Set<string>();
+		for (const item of availableItems) {
+			const rawType = item.itemData?.metadata?.item_type || 'uncategorized';
+			const category = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+			categories.add(category);
+		}
+
+		// Total cells = items + category headers
+		const totalCells = availableItems.length + categories.size;
+
+		return Math.ceil(totalCells / this.itemsPerPage);
 	}
 
 	/**
-	 * Calculate items per page based on viewport height and display mode
+	 * Calculate items per page based on fixed grid cells
+	 * Returns total cells (rows × columns) that fit in viewport
 	 */
 	private calculateItemsPerPage(): number {
 		const container = this.containerEl.children[1] as HTMLElement;
 		if (!container) return 20;
 
-		const displayMode = this.getDisplayMode();
+		const columns = this.getColumns();
 		const viewportHeight = container.clientHeight;
-		const headerHeight = 200;
-		const availableHeight = viewportHeight - headerHeight;
+		const headerHeight = 80; // Header + padding
+		const gridPaddingVertical = 32; // Grid padding: 1rem top + 1rem bottom
+		const headerMarginBottom = 8; // Header margin-bottom: 0.5rem
+		const availableHeight = viewportHeight - headerHeight - gridPaddingVertical - headerMarginBottom;
 
-		// Different item heights and column counts for each mode
-		let itemHeight = 280;
-		let columns = 2;
+		// Standard cell height and gap between rows
+		const cellHeight = 100;
+		const gap = 4; // 0.5rem gap between rows (halved for less conservative calculation)
 
-		switch (displayMode) {
-			case 'large-cards':
-				itemHeight = 350;
-				columns = 2;
-				break;
-			case 'compact-cards':
-				itemHeight = 200;
-				columns = 5;
-				break;
-			case 'list-2col':
-				itemHeight = 120;
-				columns = 2;
-				break;
-			case 'list-3col':
-				itemHeight = 100;
-				columns = 3;
-				break;
-			case 'dense-list':
-				itemHeight = 80;
-				columns = 4;
-				break;
-			case 'gallery':
-				itemHeight = 400;
-				columns = 3;
-				break;
-			case 'table':
-				itemHeight = 60;
-				columns = 1;
-				break;
-			case 'standard':
-			default:
-				itemHeight = 280;
-				columns = 2;
-				break;
-		}
+		// Calculate how many rows fit in viewport, accounting for gaps between rows
+		// Formula: rows * cellHeight + (rows - 1) * gap <= availableHeight
+		// Simplified: rows <= (availableHeight + gap) / (cellHeight + gap)
+		const rows = Math.max(1, Math.floor((availableHeight + gap) / (cellHeight + gap)));
 
-		// Calculate rows that fit in viewport
-		const rowsPerPage = Math.max(1, Math.floor(availableHeight / itemHeight));
+		// Store for rendering
+		this.itemsPerPage = rows * columns;
 
-		return rowsPerPage * columns;
+		return rows * columns;
+	}
+
+	/**
+	 * Get grid configuration based on column count
+	 */
+	private getGridConfig(): { rows: number; columns: number; cellHeight: number } {
+		const container = this.containerEl.children[1] as HTMLElement;
+		const viewportHeight = container?.clientHeight || 800;
+		const headerHeight = 80;
+		const gridPaddingVertical = 32; // Grid padding: 1rem top + 1rem bottom
+		const headerMarginBottom = 8; // Header margin-bottom: 0.5rem
+		const availableHeight = viewportHeight - headerHeight - gridPaddingVertical - headerMarginBottom;
+
+		const columns = this.getColumns();
+		const cellHeight = 100; // Standard cell height
+		const gap = 4; // 0.5rem gap between rows (halved for less conservative calculation)
+
+		// Calculate rows accounting for gaps between them
+		const rows = Math.max(1, Math.floor((availableHeight + gap) / (cellHeight + gap)));
+
+		return { rows, columns, cellHeight };
 	}
 
 	/**
@@ -353,15 +397,6 @@ export class ShopDisplayView extends ItemView {
 			text: this.shopData!.name
 		});
 
-		// Shop type badge
-		const shopTypeConfig = this.plugin.settings.shopTypes[this.shopData!.shopType];
-		const shopTypeLabel = shopTypeConfig ? shopTypeConfig.label : this.shopData!.shopType;
-
-		headerEl.createDiv({
-			cls: 'shop-type-badge',
-			text: shopTypeLabel
-		});
-
 		// Price modifier indicator (if not 0)
 		if (this.shopData!.priceModifier !== 0) {
 			const modifierText = this.shopData!.priceModifier > 0
@@ -385,16 +420,14 @@ export class ShopDisplayView extends ItemView {
 	}
 
 	/**
-	 * Render inventory items
+	 * Render inventory items in fixed grid layout with cell-based pagination
 	 */
 	private renderInventory(container: HTMLElement): void {
 		// Filter out items with 0 quantity
 		const availableItems = this.shopData!.inventory.filter(item => item.quantity > 0);
 
 		if (availableItems.length === 0) {
-			// Calculate size class for empty state
-			const sizeClass = this.calculateSizeClass(0);
-			const inventoryEl = container.createDiv({ cls: `shop-inventory ${sizeClass}` });
+			const inventoryEl = container.createDiv({ cls: 'shop-inventory shop-inventory-grid' });
 			inventoryEl.createDiv({
 				cls: 'inventory-empty',
 				text: 'This shop has no items in stock.'
@@ -402,16 +435,13 @@ export class ShopDisplayView extends ItemView {
 			return;
 		}
 
-		// Apply pagination slice
+		// Sort ALL items by price first
 		const sortedItems = [...availableItems].sort((a, b) => a.calculatedPrice - b.calculatedPrice);
-		const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-		const endIndex = startIndex + this.itemsPerPage;
-		const pageItems = sortedItems.slice(startIndex, endIndex);
 
-		// Group items by category
-		const itemsByCategory = new Map<string, typeof pageItems>();
+		// Group ALL items by category (don't slice yet)
+		const itemsByCategory = new Map<string, typeof sortedItems>();
 
-		for (const item of pageItems) {
+		for (const item of sortedItems) {
 			const rawType = item.itemData?.metadata?.item_type || 'uncategorized';
 			const category = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
 
@@ -433,67 +463,148 @@ export class ShopDisplayView extends ItemView {
 			return a.localeCompare(b);
 		});
 
-		// Calculate size class based on page item count
-		const sizeClass = this.calculateSizeClass(pageItems.length);
+		// Flatten to cell list: [header, item, item, header, item, item...]
+		const allCells: Array<{ type: 'header' | 'item'; data: any }> = [];
 
-		const inventoryEl = container.createDiv({ cls: `shop-inventory ${sizeClass}` });
-
-		// Render each category
 		for (const category of sortedCategories) {
 			const categoryItems = itemsByCategory.get(category)!;
 
-			// Create category section container
-			const categorySection = inventoryEl.createDiv({ cls: 'category-section' });
+			// Add category header as a cell
+			allCells.push({ type: 'header', data: category });
 
-			// Render category label
-			categorySection.createEl('h2', {
-				cls: 'category-label',
-				text: category
-			});
+			// Add items as cells
+			for (const item of categoryItems) {
+				allCells.push({ type: 'item', data: item });
+			}
+		}
 
-			// Create items container
-			const itemsContainer = categorySection.createDiv({ cls: 'category-items' });
+		// Slice cells by page (headers + items)
+		const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+		const endIndex = startIndex + this.itemsPerPage;
+		const pageCells = allCells.slice(startIndex, endIndex);
 
-			// Render items in this category
-			for (const invItem of categoryItems) {
-				this.renderInventoryItem(itemsContainer, invItem);
+		// Get grid configuration
+		const gridConfig = this.getGridConfig();
+
+		// Create grid container with fixed rows and dynamic columns
+		const inventoryEl = container.createDiv({
+			cls: 'shop-inventory shop-inventory-grid',
+			attr: {
+				style: `grid-template-rows: repeat(${gridConfig.rows}, ${gridConfig.cellHeight}px); grid-template-columns: repeat(${gridConfig.columns}, 1fr);`
+			}
+		});
+
+		// Render cells for this page
+		for (const cell of pageCells) {
+			if (cell.type === 'header') {
+				// Render category header with special styling for Cards category
+				const categoryClass = cell.data.toLowerCase() === 'cards'
+					? 'grid-category-header grid-category-header-cards'
+					: 'grid-category-header';
+
+				inventoryEl.createDiv({
+					cls: categoryClass,
+					text: cell.data
+				});
+			} else {
+				// Render item
+				this.renderGridItem(inventoryEl, cell.data, gridConfig);
 			}
 		}
 	}
 
 	/**
-	 * Calculate layout class based on display mode and item count
+	 * Render a single item as a grid cell
 	 */
-	private calculateSizeClass(itemCount: number): string {
-		const displayMode = this.getDisplayMode();
+	private renderGridItem(container: HTMLElement, invItem: any, gridConfig: { rows: number; columns: number; cellHeight: number }): void {
+		const showDescriptions = this.shopData?.showDescriptions ?? true;
+		const itemEl = container.createDiv({ cls: 'inventory-item grid-item grid-item-compact' });
 
-		// Map display modes to layout classes
-		switch (displayMode) {
-			case 'large-cards':
-				return 'size-large';
-			case 'compact-cards':
-				return 'size-tiny';
-			case 'list-2col':
-				return 'layout-list-2col';
-			case 'list-3col':
-				return 'layout-list-3col';
-			case 'dense-list':
-				return 'layout-dense-list';
-			case 'gallery':
-				return 'layout-gallery';
-			case 'table':
-				return 'layout-table';
-			case 'standard':
-			default:
-				// Auto-calculate based on item count
-				if (itemCount <= 6) return 'size-xlarge';
-				if (itemCount <= 12) return 'size-large';
-				if (itemCount <= 20) return 'size-medium';
-				if (itemCount <= 30) return 'size-small';
-				if (itemCount <= 50) return 'size-tiny';
-				return 'size-scrollable';
+		// Handle missing item data
+		if (!invItem.itemData) {
+			itemEl.addClass('item-missing');
+			itemEl.createDiv({ cls: 'grid-item-name', text: invItem.itemRef });
+			itemEl.createDiv({ cls: 'grid-item-warning', text: '⚠️' });
+			return;
 		}
+
+		const item = invItem.itemData;
+
+		// Add selected class if this item is currently selected
+		if (this.selectedItem && this.selectedItem.path === item.path) {
+			itemEl.addClass('inventory-item-selected');
+		}
+
+		// Add rarity class if available
+		if (item.rarity) {
+			itemEl.addClass(`rarity-${item.rarity.toLowerCase().replace(/\s+/g, '-')}`);
+		}
+
+		// Calculate image size based on cell height - fill the full height minus top and bottom padding
+		const imageHeight = Math.floor(gridConfig.cellHeight - 16); // -16px for padding (8px top + 8px bottom)
+
+		// Item image (top-left)
+		if (item.imageUrl && imageHeight >= 20) {
+			const imgContainer = itemEl.createDiv({
+				cls: 'grid-item-image',
+				attr: { style: `height: ${imageHeight}px; width: ${imageHeight}px;` }
+			});
+			const imgEl = imgContainer.createEl('img');
+
+			// Handle both online URLs and local file paths
+			if (item.imageUrl.startsWith('http://') || item.imageUrl.startsWith('https://')) {
+				imgEl.src = item.imageUrl;
+			} else {
+				const resolvedPath = this.resolveImagePath(item.imageUrl, item.path);
+				const resourcePath = this.app.vault.adapter.getResourcePath(resolvedPath);
+				imgEl.src = resourcePath;
+			}
+
+			imgEl.alt = item.name;
+			imgEl.onerror = () => {
+				imgContainer.empty();
+				imgContainer.addClass('grid-item-image-error');
+			};
+		}
+
+		// Stock indicator (top-right)
+		if (invItem.quantity <= 3) {
+			itemEl.createDiv({
+				cls: 'grid-item-stock',
+				text: `×${invItem.quantity}`
+			});
+		}
+
+		// Content wrapper (name + description)
+		const contentEl = itemEl.createDiv({ cls: 'grid-item-content' });
+
+		// Item name
+		contentEl.createDiv({
+			cls: 'grid-item-name',
+			text: item.name
+		});
+
+		// Item description (shown when enabled)
+		if (showDescriptions && item.description) {
+			contentEl.createDiv({
+				cls: 'grid-item-description',
+				text: item.description
+			});
+		}
+
+		// Item price (bottom-right)
+		const priceText = this.plugin.priceCalculator.formatCurrency(invItem.calculatedPrice);
+		itemEl.createDiv({
+			cls: 'grid-item-price',
+			text: priceText
+		});
+
+		// Click handler
+		itemEl.addEventListener('click', () => {
+			this.showItemDetail(item);
+		});
 	}
+
 
 	/**
 	 * Render a single inventory item with category badge (for paginated view)

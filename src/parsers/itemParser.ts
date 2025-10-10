@@ -117,6 +117,7 @@ export class ItemParser {
 			// Extract item data
 			const itemData: ItemData = {
 				path: file.path,
+				file: file,
 				name: fm.name,
 				basePrice: fm.base_price,
 				rarity: fm.rarity,
@@ -180,5 +181,36 @@ export class ItemParser {
 			lastUpdated: this.cache.lastUpdated,
 			items: Array.from(uniqueItems.values())
 		};
+	}
+
+	/**
+	 * Refresh a single item in the cache by re-parsing it
+	 * Useful when an item file has been modified externally
+	 * @param itemFile - The item file to refresh
+	 */
+	async refreshItem(itemFile: TFile): Promise<void> {
+		try {
+			// Re-parse the item
+			const itemData = await this.parseItemNote(itemFile);
+
+			if (itemData) {
+				// Update cache with both name and path keys
+				this.cache.items.set(itemData.name.toLowerCase(), itemData);
+				this.cache.items.set(itemData.path, itemData);
+				console.log(`Refreshed item cache for: ${itemData.name}`);
+			} else {
+				// Item is no longer valid, remove from cache
+				// We need to remove both the name and path entries
+				// First, try to get the old item data to find the name
+				const oldItemByPath = this.cache.items.get(itemFile.path);
+				if (oldItemByPath) {
+					this.cache.items.delete(oldItemByPath.name.toLowerCase());
+				}
+				this.cache.items.delete(itemFile.path);
+				console.log(`Removed invalid item from cache: ${itemFile.path}`);
+			}
+		} catch (error) {
+			console.error(`Error refreshing item cache for ${itemFile.path}:`, error);
+		}
 	}
 }

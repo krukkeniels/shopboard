@@ -81,6 +81,9 @@ export class ImageGenerator {
 			const description = fm.description || '';
 			const rarity = fm.rarity || 'common';
 
+			// Capture existing image URL (if any) to delete it later after successful generation
+			const oldImageUrl = fm.image_url || fm.imageUrl;
+
 			// Generate prompt for DALL-E
 			const prompt = this.buildPrompt(itemName, description, rarity);
 
@@ -114,6 +117,11 @@ export class ImageGenerator {
 			if (!imagePath) {
 				new Notice('Failed to save image to vault');
 				return null;
+			}
+
+			// Delete old image if it exists and is different from the new one
+			if (oldImageUrl && oldImageUrl !== imagePath) {
+				await this.deleteOldImage(oldImageUrl);
 			}
 
 			// Update item frontmatter
@@ -223,15 +231,12 @@ export class ImageGenerator {
 	}
 
 	/**
-	 * Save image data to attachment folder next to the item file
+	 * Save image data to attachment folder at vault root
 	 */
 	private async saveImage(itemFile: TFile, imageData: ArrayBuffer, itemName: string): Promise<string | null> {
 		try {
-			// Get the directory of the item file
-			const itemDir = itemFile.parent?.path || '';
-
-			// Create attachment folder path
-			const attachmentsDir = normalizePath(`${itemDir}/${this.attachmentFolder}`);
+			// Create attachment folder path at vault root
+			const attachmentsDir = normalizePath(this.attachmentFolder);
 
 			// Ensure attachment folder exists
 			if (!(await this.app.vault.adapter.exists(attachmentsDir))) {
@@ -249,8 +254,8 @@ export class ImageGenerator {
 			// Save the image
 			await this.app.vault.adapter.writeBinary(imagePath, imageData);
 
-			// Return relative path from item file
-			return `${this.attachmentFolder}/${safeFileName}.png`;
+			// Return path from vault root
+			return imagePath;
 		} catch (error) {
 			console.error('Error saving image:', error);
 			return null;
@@ -297,9 +302,68 @@ export class ImageGenerator {
 
 			// Save the updated content
 			await this.app.vault.modify(itemFile, newContent);
+
+			// Wait for Obsidian's metadata cache to update
+			await this.waitForMetadataUpdate(itemFile);
 		} catch (error) {
 			console.error('Error updating frontmatter:', error);
 			throw error;
+		}
+	}
+
+	/**
+	 * Wait for Obsidian's metadata cache to update for a specific file
+	 */
+	private async waitForMetadataUpdate(file: TFile, timeoutMs: number = 5000): Promise<void> {
+		return new Promise((resolve) => {
+			let resolved = false;
+
+			// Set up timeout fallback
+			const timeout = setTimeout(() => {
+				if (!resolved) {
+					resolved = true;
+					console.warn(`Metadata cache update timeout for ${file.path}`);
+					resolve();
+				}
+			}, timeoutMs);
+
+			// Listen for metadata cache changes
+			const handler = (updatedFile: TFile) => {
+				if (updatedFile.path === file.path && !resolved) {
+					resolved = true;
+					clearTimeout(timeout);
+					this.app.metadataCache.off('changed', handler);
+					console.log(`Metadata cache updated for ${file.path}`);
+					resolve();
+				}
+			};
+
+			this.app.metadataCache.on('changed', handler);
+		});
+	}
+
+	/**
+	 * Delete old image file from vault
+	 */
+	private async deleteOldImage(oldImagePath: string): Promise<void> {
+		try {
+			// Check if it's a vault path (not an external URL)
+			if (oldImagePath.startsWith('http://') || oldImagePath.startsWith('https://')) {
+				// External URL, don't try to delete
+				return;
+			}
+
+			// Normalize the path
+			const normalizedPath = normalizePath(oldImagePath);
+
+			// Check if file exists before trying to delete
+			if (await this.app.vault.adapter.exists(normalizedPath)) {
+				await this.app.vault.adapter.remove(normalizedPath);
+				console.log(`Deleted old image: ${normalizedPath}`);
+			}
+		} catch (error) {
+			// Log error but don't fail the operation
+			console.warn('Failed to delete old image:', error);
 		}
 	}
 }
