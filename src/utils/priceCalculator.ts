@@ -12,10 +12,10 @@ export class PriceCalculator {
 
 	/**
 	 * Calculate final price with modifiers
-	 * @param basePrice - Base price in smallest denomination
+	 * @param basePrice - Base price in base currency denomination
 	 * @param modifier - Percentage modifier (e.g., -20 for 20% discount, +50 for 50% markup)
 	 * @param override - Optional price override (takes precedence)
-	 * @returns Final calculated price
+	 * @returns Final calculated price in base currency
 	 */
 	calculatePrice(basePrice: number, modifier: number, override?: number): number {
 		// If override exists, use it directly
@@ -38,9 +38,41 @@ export class PriceCalculator {
 	}
 
 	/**
+	 * Convert amount from one currency denomination to another
+	 * @param amount - Amount to convert
+	 * @param fromCurrency - Source currency denomination name (e.g., 'cp')
+	 * @param toCurrency - Target currency denomination name (e.g., 'gp')
+	 * @returns Converted amount
+	 */
+	convertCurrency(amount: number, fromCurrency: string, toCurrency: string): number {
+		// If same currency, no conversion needed
+		if (fromCurrency === toCurrency) {
+			return amount;
+		}
+
+		// Find denominations
+		const fromDenom = this.currencyConfig.denominations.find(d => d.name === fromCurrency);
+		const toDenom = this.currencyConfig.denominations.find(d => d.name === toCurrency);
+
+		if (!fromDenom) {
+			console.warn(`Currency denomination not found: ${fromCurrency}. Using amount as-is.`);
+			return amount;
+		}
+
+		if (!toDenom) {
+			console.warn(`Currency denomination not found: ${toCurrency}. Using amount as-is.`);
+			return amount;
+		}
+
+		// Convert: amount * (fromValue / toValue)
+		// Example: 100 cp (value 0.01) to gp (value 1) = 100 * (0.01 / 1) = 1 gp
+		return amount * (fromDenom.value / toDenom.value);
+	}
+
+	/**
 	 * Format currency for display
-	 * @param price - Price in smallest denomination
-	 * @returns Formatted currency string
+	 * @param price - Price in base currency denomination
+	 * @returns Formatted currency string in display currency
 	 */
 	formatCurrency(price: number): string {
 		// Handle edge cases
@@ -54,63 +86,48 @@ export class PriceCalculator {
 			price = 0;
 		}
 
+		// Convert from base currency to display currency
+		const displayPrice = this.convertCurrency(
+			price,
+			this.currencyConfig.baseCurrency,
+			this.currencyConfig.displayCurrency
+		);
+
 		// Check if rounding is enabled
 		if (this.currencyConfig.roundForPlayers) {
-			// Find gold denomination (highest value denomination)
-			const goldDenom = this.currencyConfig.denominations
-				.find(d => d.name === 'gp' || d.value === 1);
-
-			if (goldDenom) {
-				// Calculate gold value
-				const goldValue = price * goldDenom.value;
-
-				// Only round if gold value >= 1
-				if (goldValue >= 1) {
-					const roundedGold = Math.ceil(goldValue);
-					return `${roundedGold} ${goldDenom.name}`;
-				}
+			// Only round if display value >= 1
+			if (displayPrice >= 1) {
+				const roundedPrice = Math.ceil(displayPrice);
+				return `${roundedPrice} ${this.currencyConfig.displayCurrency}`;
 			}
 		}
 
-		// Default behavior for prices < 1 gold or when rounding is disabled
+		// Default behavior for prices < 1 or when rounding is disabled
 		if (this.currencyConfig.display === 'auto') {
 			return this.convertToMultipleDenominations(price).formatted;
 		} else {
-			return this.formatSimple(price);
+			return this.formatSimple(displayPrice);
 		}
 	}
 
 	/**
 	 * Format currency in simple mode (single denomination)
-	 * @param price - Price in smallest denomination
+	 * @param displayPrice - Price already converted to display currency
 	 * @returns Formatted string
 	 */
-	private formatSimple(price: number): string {
-		const denominations = this.currencyConfig.denominations;
-
-		if (denominations.length === 0) {
-			return `${price}`;
-		}
-
-		// Sort denominations by value (descending)
-		const sorted = [...denominations].sort((a, b) => b.value - a.value);
-
-		// Use the highest denomination for display
-		const highestDenom = sorted[0];
-		const convertedValue = price * highestDenom.value;
-
+	private formatSimple(displayPrice: number): string {
 		// Format with appropriate decimal places
-		if (convertedValue % 1 === 0) {
-			return `${convertedValue} ${highestDenom.name}`;
+		if (displayPrice % 1 === 0) {
+			return `${displayPrice} ${this.currencyConfig.displayCurrency}`;
 		} else {
-			return `${convertedValue.toFixed(2)} ${highestDenom.name}`;
+			return `${displayPrice.toFixed(2)} ${this.currencyConfig.displayCurrency}`;
 		}
 	}
 
 	/**
 	 * Convert price to multiple denominations (auto mode)
 	 * Example: 156 cp → 1 gp, 5 sp, 6 cp
-	 * @param price - Price in smallest denomination
+	 * @param price - Price in base currency denomination
 	 * @returns Currency breakdown
 	 */
 	convertToMultipleDenominations(price: number): CurrencyBreakdown {
@@ -119,32 +136,43 @@ export class PriceCalculator {
 		if (denominations.length === 0) {
 			return {
 				denominations: [],
-				formatted: `${price}`
+				formatted: `${price} ${this.currencyConfig.baseCurrency}`
 			};
 		}
 
 		// Sort denominations by value (descending) to process largest first
 		const sorted = [...denominations].sort((a, b) => b.value - a.value);
 
-		// Find the smallest denomination value (base unit)
-		const smallestValue = sorted[sorted.length - 1].value;
+		// Find the smallest denomination value to use as base unit for calculation
+		const smallestDenom = sorted[sorted.length - 1];
+		const smallestValue = smallestDenom.value;
 
-		// Price is already in base units (copper pieces)
-		let remainingInBaseUnits = Math.round(price);
+		// Convert price from baseCurrency to smallest denomination
+		const baseDenom = denominations.find(d => d.name === this.currencyConfig.baseCurrency);
+		if (!baseDenom) {
+			console.warn(`Base currency ${this.currencyConfig.baseCurrency} not found in denominations`);
+			return {
+				denominations: [],
+				formatted: `${price} ${this.currencyConfig.baseCurrency}`
+			};
+		}
+
+		// Convert to smallest units
+		let remainingInSmallestUnits = Math.round(price * (baseDenom.value / smallestValue));
 
 		const breakdown: Array<{ name: string; amount: number }> = [];
 
 		// Calculate each denomination
 		for (const denom of sorted) {
 			const unitsPerDenom = Math.round(denom.value / smallestValue);
-			const count = Math.floor(remainingInBaseUnits / unitsPerDenom);
+			const count = Math.floor(remainingInSmallestUnits / unitsPerDenom);
 
 			if (count > 0) {
 				breakdown.push({
 					name: denom.name,
 					amount: count
 				});
-				remainingInBaseUnits -= count * unitsPerDenom;
+				remainingInSmallestUnits -= count * unitsPerDenom;
 			}
 		}
 
@@ -155,7 +183,7 @@ export class PriceCalculator {
 
 		return {
 			denominations: breakdown,
-			formatted: formatted || '0'
+			formatted: formatted || `0 ${smallestDenom.name}`
 		};
 	}
 

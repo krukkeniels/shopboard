@@ -104,6 +104,10 @@ export interface CurrencyConfig {
 	display: 'auto' | 'simple';
 	/** Round prices up to nearest gold integer for player display */
 	roundForPlayers?: boolean;
+	/** Base currency denomination for storage (e.g., 'cp' - what base_price values are stored in) */
+	baseCurrency: string;
+	/** Display currency denomination for players (e.g., 'gp' - what denomination to show) */
+	displayCurrency: string;
 }
 
 /**

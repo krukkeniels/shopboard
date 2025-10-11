@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
+import { App, PluginSettingTab, Setting, Notice, Modal } from 'obsidian';
 import type ShopboardPlugin from './main';
 import { ShopboardSettings, ImageStyle } from './types';
 
@@ -16,7 +16,9 @@ export const DEFAULT_SETTINGS: ShopboardSettings = {
 			{ name: 'cp', label: 'Copper', value: 0.01 }
 		],
 		display: 'auto',
-		roundForPlayers: false
+		roundForPlayers: false,
+		baseCurrency: 'cp',
+		displayCurrency: 'gp'
 	},
 	shopTypes: {
 		magic_shop: {
@@ -131,7 +133,67 @@ export class ShopboardSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.currency.system = value as 'dnd' | 'custom';
 					await this.plugin.saveSettings();
+					// Refresh display to show/hide denomination editor
+					this.display();
 				}));
+
+		// Custom Denomination Editor (only shown when system is 'custom')
+		if (this.plugin.settings.currency.system === 'custom') {
+			containerEl.createEl('h4', { text: 'Custom Denominations' });
+			containerEl.createEl('p', {
+				text: 'Configure your custom currency denominations. Value is the multiplier relative to your base unit.',
+				cls: 'setting-item-description'
+			});
+
+			// Display current denominations
+			for (let i = 0; i < this.plugin.settings.currency.denominations.length; i++) {
+				const denom = this.plugin.settings.currency.denominations[i];
+				const denomSetting = new Setting(containerEl)
+					.setName(`${denom.label} (${denom.name})`)
+					.setDesc(`Value: ${denom.value}`);
+
+				// Edit button
+				denomSetting.addButton(button => button
+					.setButtonText('Edit')
+					.onClick(() => {
+						this.openDenominationEditModal(i);
+					}));
+
+				// Delete button
+				denomSetting.addButton(button => button
+					.setButtonText('Delete')
+					.setWarning()
+					.onClick(async () => {
+						// Prevent deleting if it's the last denomination
+						if (this.plugin.settings.currency.denominations.length === 1) {
+							new Notice('Cannot delete the last denomination');
+							return;
+						}
+
+						// Warn if base or display currency uses this denomination
+						if (this.plugin.settings.currency.baseCurrency === denom.name ||
+							this.plugin.settings.currency.displayCurrency === denom.name) {
+							new Notice('Cannot delete denomination currently used as base or display currency');
+							return;
+						}
+
+						// Remove denomination
+						this.plugin.settings.currency.denominations.splice(i, 1);
+						await this.plugin.saveSettings();
+						this.display(); // Refresh display
+						new Notice(`Deleted denomination: ${denom.label}`);
+					}));
+			}
+
+			// Add Denomination button
+			new Setting(containerEl)
+				.addButton(button => button
+					.setButtonText('Add Denomination')
+					.setCta()
+					.onClick(() => {
+						this.openDenominationAddModal();
+					}));
+		}
 
 		// Currency Display Mode Setting
 		new Setting(containerEl)
@@ -156,6 +218,40 @@ export class ShopboardSettingTab extends PluginSettingTab {
 					this.plugin.settings.currency.roundForPlayers = value;
 					await this.plugin.saveSettings();
 				}));
+
+		// Base Currency Setting
+		new Setting(containerEl)
+			.setName('Base Currency for Storage')
+			.setDesc('Currency denomination that item base_price values are stored in')
+			.addDropdown(dropdown => {
+				// Populate dropdown with current denominations
+				for (const denom of this.plugin.settings.currency.denominations) {
+					dropdown.addOption(denom.name, `${denom.label} (${denom.name})`);
+				}
+				return dropdown
+					.setValue(this.plugin.settings.currency.baseCurrency)
+					.onChange(async (value) => {
+						this.plugin.settings.currency.baseCurrency = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		// Display Currency Setting
+		new Setting(containerEl)
+			.setName('Display Currency for Players')
+			.setDesc('Currency denomination to display prices in (player window, DM control, add item modal)')
+			.addDropdown(dropdown => {
+				// Populate dropdown with current denominations
+				for (const denom of this.plugin.settings.currency.denominations) {
+					dropdown.addOption(denom.name, `${denom.label} (${denom.name})`);
+				}
+				return dropdown
+					.setValue(this.plugin.settings.currency.displayCurrency)
+					.onChange(async (value) => {
+						this.plugin.settings.currency.displayCurrency = value;
+						await this.plugin.saveSettings();
+					});
+			});
 
 		// Theme Override Setting
 		new Setting(containerEl)
@@ -245,5 +341,163 @@ export class ShopboardSettingTab extends PluginSettingTab {
 						this.display(); // Refresh display
 					}));
 		}
+	}
+
+	/**
+	 * Open modal to edit an existing denomination
+	 */
+	private openDenominationEditModal(index: number): void {
+		const denom = this.plugin.settings.currency.denominations[index];
+
+		const modal = new DenominationEditModal(
+			this.app,
+			denom,
+			async (name: string, label: string, value: number) => {
+				// Update denomination
+				this.plugin.settings.currency.denominations[index] = { name, label, value };
+
+				// Update base/display currency if the name changed
+				if (this.plugin.settings.currency.baseCurrency === denom.name) {
+					this.plugin.settings.currency.baseCurrency = name;
+				}
+				if (this.plugin.settings.currency.displayCurrency === denom.name) {
+					this.plugin.settings.currency.displayCurrency = name;
+				}
+
+				await this.plugin.saveSettings();
+				this.display(); // Refresh display
+				new Notice(`Updated denomination: ${label}`);
+			}
+		);
+		modal.open();
+	}
+
+	/**
+	 * Open modal to add a new denomination
+	 */
+	private openDenominationAddModal(): void {
+		const modal = new DenominationEditModal(
+			this.app,
+			{ name: '', label: '', value: 1 },
+			async (name: string, label: string, value: number) => {
+				// Check if name already exists
+				const exists = this.plugin.settings.currency.denominations.some(d => d.name === name);
+				if (exists) {
+					new Notice(`Denomination with name "${name}" already exists`);
+					return;
+				}
+
+				// Add new denomination
+				this.plugin.settings.currency.denominations.push({ name, label, value });
+				await this.plugin.saveSettings();
+				this.display(); // Refresh display
+				new Notice(`Added denomination: ${label}`);
+			}
+		);
+		modal.open();
+	}
+}
+
+/**
+ * Modal for editing/adding currency denominations
+ */
+class DenominationEditModal extends Modal {
+	private denom: { name: string; label: string; value: number };
+	private onSubmit: (name: string, label: string, value: number) => void;
+
+	constructor(
+		app: App,
+		denom: { name: string; label: string; value: number },
+		onSubmit: (name: string, label: string, value: number) => void
+	) {
+		super(app);
+		this.denom = denom;
+		this.onSubmit = onSubmit;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.empty();
+
+		contentEl.createEl('h2', { text: this.denom.name ? 'Edit Denomination' : 'Add Denomination' });
+
+		// Name input
+		const nameSetting = new Setting(contentEl)
+			.setName('Name')
+			.setDesc('Short code (e.g., "gp", "sp", "cp", "cr")');
+
+		const nameInput = nameSetting.controlEl.createEl('input', {
+			type: 'text',
+			value: this.denom.name,
+			attr: { placeholder: 'e.g., gp' }
+		});
+
+		// Label input
+		const labelSetting = new Setting(contentEl)
+			.setName('Label')
+			.setDesc('Display name (e.g., "Gold", "Silver", "Copper")');
+
+		const labelInput = labelSetting.controlEl.createEl('input', {
+			type: 'text',
+			value: this.denom.label,
+			attr: { placeholder: 'e.g., Gold' }
+		});
+
+		// Value input
+		const valueSetting = new Setting(contentEl)
+			.setName('Value')
+			.setDesc('Multiplier relative to your base unit (e.g., if copper is base: copper=1, silver=10, gold=100)');
+
+		const valueInput = valueSetting.controlEl.createEl('input', {
+			type: 'number',
+			value: this.denom.value.toString(),
+			attr: { placeholder: 'e.g., 100', step: 'any', min: '0' }
+		});
+
+		// Buttons
+		const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
+
+		// Submit button
+		const submitButton = buttonContainer.createEl('button', {
+			text: this.denom.name ? 'Update' : 'Add',
+			cls: 'mod-cta'
+		});
+
+		submitButton.addEventListener('click', () => {
+			const name = nameInput.value.trim();
+			const label = labelInput.value.trim();
+			const value = parseFloat(valueInput.value);
+
+			// Validation
+			if (!name) {
+				new Notice('Name is required');
+				return;
+			}
+			if (!label) {
+				new Notice('Label is required');
+				return;
+			}
+			if (isNaN(value) || value <= 0) {
+				new Notice('Value must be a positive number');
+				return;
+			}
+
+			this.onSubmit(name, label, value);
+			this.close();
+		});
+
+		// Cancel button
+		const cancelButton = buttonContainer.createEl('button', {
+			text: 'Cancel'
+		});
+
+		cancelButton.addEventListener('click', () => {
+			this.close();
+		});
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		contentEl.empty();
 	}
 }

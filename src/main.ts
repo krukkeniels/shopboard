@@ -128,6 +128,14 @@ export default class ShopboardPlugin extends Plugin {
 		if (!this.settings.equipmentFolders || this.settings.equipmentFolders.length === 0) {
 			this.settings.equipmentFolders = ['Equipment'];
 		}
+
+		// Migration: Ensure currency baseCurrency and displayCurrency exist
+		if (!this.settings.currency.baseCurrency) {
+			this.settings.currency.baseCurrency = 'cp';
+		}
+		if (!this.settings.currency.displayCurrency) {
+			this.settings.currency.displayCurrency = 'gp';
+		}
 	}
 
 	/**

@@ -1,12 +1,15 @@
 import { App, Modal, Notice } from 'obsidian';
 import { ItemParser } from '../parsers/itemParser';
-import { ItemData } from '../types';
+import { ItemData, ShopboardSettings } from '../types';
+import { PriceCalculator } from '../utils/priceCalculator';
 
 /**
  * Modal for searching and adding items to a shop
  */
 export class AddItemModal extends Modal {
 	private itemParser: ItemParser;
+	private settings: ShopboardSettings;
+	private priceCalculator: PriceCalculator;
 	private searchQuery: string = '';
 	private onSubmit: (itemRef: string, quantity: number) => void;
 
@@ -16,10 +19,14 @@ export class AddItemModal extends Modal {
 	constructor(
 		app: App,
 		itemParser: ItemParser,
+		settings: ShopboardSettings,
+		priceCalculator: PriceCalculator,
 		onSubmit: (itemRef: string, quantity: number) => void
 	) {
 		super(app);
 		this.itemParser = itemParser;
+		this.settings = settings;
+		this.priceCalculator = priceCalculator;
 		this.onSubmit = onSubmit;
 	}
 
@@ -178,8 +185,30 @@ export class AddItemModal extends Modal {
 				rarityCell.textContent = '-';
 			}
 
-			// Base price
-			const priceText = item.basePrice ? `${item.basePrice} cp` : '-';
+			// Base price with converted display value
+			let priceText = '-';
+			if (item.basePrice) {
+				const baseCurrency = this.settings.currency.baseCurrency;
+				const displayCurrency = this.settings.currency.displayCurrency;
+
+				priceText = `${item.basePrice} ${baseCurrency}`;
+
+				// Show converted display currency if different from base
+				if (baseCurrency !== displayCurrency) {
+					const displayPrice = this.priceCalculator.convertCurrency(
+						item.basePrice,
+						baseCurrency,
+						displayCurrency
+					);
+
+					// Format display price with appropriate decimal places
+					const formattedDisplay = displayPrice % 1 === 0
+						? displayPrice.toString()
+						: displayPrice.toFixed(2);
+
+					priceText += ` (${formattedDisplay} ${displayCurrency})`;
+				}
+			}
 			row.createEl('td', { text: priceText, cls: 'price-cell' });
 
 			// Quick add buttons

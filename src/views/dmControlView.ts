@@ -757,6 +757,8 @@ export class DMControlView extends ItemView {
 		const modal = new AddItemModal(
 			this.app,
 			this.plugin.itemParser,
+			this.plugin.settings,
+			this.plugin.priceCalculator,
 			async (itemRef: string, quantity: number) => {
 				await this.handleAddItem(itemRef, quantity, null);
 			}
