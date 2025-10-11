@@ -44,6 +44,7 @@ export class ShopParser {
 				priceModifier: fm.price_modifier || 0,
 				inventory: [],
 				columns: fm.columns || 4, // Default to 4 columns
+			rows: fm.rows, // Undefined = auto-calculate based on viewport
 				showDescriptions: fm.show_descriptions !== undefined ? fm.show_descriptions : true, // Default to true
 				currentPage: fm.current_page || 1,
 				metadata: { ...fm }

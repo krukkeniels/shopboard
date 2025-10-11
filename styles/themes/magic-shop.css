@@ -8,17 +8,52 @@
 	--theme-accent: #c084fc;
 	--theme-background: rgba(124, 58, 237, 0.05);
 	--theme-border: rgba(124, 58, 237, 0.3);
+	position: relative;
+}
+
+/* Background image with overlay - image set dynamically via JavaScript */
+.shop-type-magic_shop::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: var(--shop-background-image);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.4;
+	z-index: 0;
+}
+
+/* Dark overlay for readability */
+.shop-type-magic_shop::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, rgba(124, 58, 237, 0.85) 0%, rgba(88, 28, 135, 0.9) 100%);
+	z-index: 0;
+}
+
+/* Ensure content is above background */
+.shop-type-magic_shop > * {
+	position: relative;
+	z-index: 1;
 }
 
 /* Header styling */
 .shop-type-magic_shop .shop-header {
-	background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+	background: linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
 	border-bottom-color: var(--theme-border);
 	position: relative;
+	backdrop-filter: blur(8px);
 }
 
 .shop-type-magic_shop .shop-header::before {
-	content: '✦';
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
@@ -28,7 +63,6 @@
 }
 
 .shop-type-magic_shop .shop-header::after {
-	content: '✦';
 	position: absolute;
 	top: 1rem;
 	right: 1rem;
@@ -40,6 +74,7 @@
 .shop-type-magic_shop .shop-name {
 	color: var(--theme-primary);
 	text-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+	font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
 }
 
 .shop-type-magic_shop .shop-type-badge {
@@ -49,15 +84,16 @@
 
 /* Inventory items */
 .shop-type-magic_shop .inventory-item {
-	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(124, 58, 237, 0.03) 100%);
+	background: linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(88, 28, 135, 0.75) 100%);
 	border-color: var(--theme-border);
-	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3), 0 0 20px rgba(168, 85, 247, 0.2);
+	backdrop-filter: blur(4px);
 }
 
 .shop-type-magic_shop .inventory-item:hover {
 	border-color: var(--theme-secondary);
-	box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
-	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(124, 58, 237, 0.08) 100%);
+	box-shadow: 0 8px 24px rgba(124, 58, 237, 0.5), 0 0 30px rgba(168, 85, 247, 0.4);
+	background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(88, 28, 135, 0.85) 100%);
 }
 
 .shop-type-magic_shop .inventory-item::before {
@@ -76,13 +112,21 @@
 	opacity: 1;
 }
 
-.shop-type-magic_shop .item-name {
-	color: var(--theme-primary);
+.shop-type-magic_shop .item-name,
+.shop-type-magic_shop .grid-item-name {
+	color: #e9d5ff;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 20px rgba(168, 85, 247, 0.6);
 }
 
-.shop-type-magic_shop .item-price {
-	color: var(--theme-secondary);
-	text-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+.shop-type-magic_shop .item-price,
+.shop-type-magic_shop .grid-item-price {
+	color: #fbbf24;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(251, 191, 36, 0.6);
+}
+
+.shop-type-magic_shop .grid-item-description {
+	color: #d8b4fe;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 /* Rarity badges for magic shop */

@@ -80,6 +80,44 @@ export class ShopModifier {
 	}
 
 	/**
+	 * Update shop row count
+	 * @param shopFile Shop note file
+	 * @param rows New row count (1-30, or undefined for auto)
+	 */
+	async updateRows(
+		shopFile: TFile,
+		rows: number | undefined
+	): Promise<void> {
+		// Validate row count if defined
+		if (rows !== undefined && (!Number.isInteger(rows) || rows < 1 || rows > 30)) {
+			throw new Error('Row count must be an integer between 1 and 30');
+		}
+
+		// Read current file content
+		const content = await this.app.vault.read(shopFile);
+
+		// Parse frontmatter
+		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
+
+		if (!frontmatter) {
+			throw new Error('Shop note has no frontmatter');
+		}
+
+		// Update rows (delete field if undefined for auto-calculation)
+		if (rows === undefined) {
+			delete frontmatter.rows;
+		} else {
+			frontmatter.rows = rows;
+		}
+
+		// Serialize back to YAML and write
+		const updatedContent = this.serializeFrontmatter(frontmatter, body);
+		await this.app.vault.modify(shopFile, updatedContent);
+
+		console.log(`Rows updated to: ${rows === undefined ? 'auto' : rows}`);
+	}
+
+	/**
 	 * Update whether to show item descriptions
 	 * @param shopFile Shop note file
 	 * @param showDescriptions Whether to show descriptions

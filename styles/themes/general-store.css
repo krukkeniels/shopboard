@@ -8,16 +8,51 @@
 	--theme-accent: #d97706;
 	--theme-background: rgba(146, 64, 14, 0.05);
 	--theme-border: rgba(146, 64, 14, 0.3);
+	position: relative;
+}
+
+/* Background image with overlay - image set dynamically via JavaScript */
+.shop-type-general_store::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: var(--shop-background-image);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.45;
+	z-index: 0;
+}
+
+/* Warm overlay for cozy atmosphere */
+.shop-type-general_store::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, rgba(58, 35, 20, 0.85) 0%, rgba(92, 55, 30, 0.88) 100%);
+	z-index: 0;
+}
+
+/* Ensure content is above background */
+.shop-type-general_store > * {
+	position: relative;
+	z-index: 1;
 }
 
 /* Header styling */
 .shop-type-general_store .shop-header {
-	background: linear-gradient(135deg, rgba(146, 64, 14, 0.08) 0%, rgba(180, 83, 9, 0.08) 100%);
+	background: linear-gradient(135deg, rgba(146, 64, 14, 0.3) 0%, rgba(180, 83, 9, 0.3) 100%);
 	border-bottom: 3px solid var(--theme-border);
+	backdrop-filter: blur(8px);
 }
 
 .shop-type-general_store .shop-header::before {
-	content: '⚖';
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
@@ -28,7 +63,7 @@
 
 .shop-type-general_store .shop-name {
 	color: var(--theme-primary);
-	font-family: var(--font-text);
+	font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .shop-type-general_store .shop-type-badge {
@@ -38,24 +73,34 @@
 
 /* Inventory items */
 .shop-type-general_store .inventory-item {
-	background: var(--background-secondary);
+	background: linear-gradient(135deg, rgba(58, 35, 20, 0.88) 0%, rgba(80, 50, 30, 0.85) 100%);
 	border: 2px solid var(--theme-border);
-	box-shadow: 0 2px 6px rgba(146, 64, 14, 0.1);
+	box-shadow: 0 2px 6px rgba(146, 64, 14, 0.3), 0 0 15px rgba(180, 83, 9, 0.15);
+	backdrop-filter: blur(4px);
 }
 
 .shop-type-general_store .inventory-item:hover {
 	border-color: var(--theme-secondary);
-	box-shadow: 0 6px 16px rgba(146, 64, 14, 0.2);
+	box-shadow: 0 6px 16px rgba(146, 64, 14, 0.4), 0 0 25px rgba(180, 83, 9, 0.3);
 }
 
-.shop-type-general_store .item-name {
-	color: var(--theme-primary);
+.shop-type-general_store .item-name,
+.shop-type-general_store .grid-item-name {
+	color: #fef3c7;
 	font-weight: 600;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(217, 119, 6, 0.4);
 }
 
-.shop-type-general_store .item-price {
-	color: var(--theme-secondary);
+.shop-type-general_store .item-price,
+.shop-type-general_store .grid-item-price {
+	color: #fbbf24;
 	font-weight: 700;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 12px rgba(251, 191, 36, 0.5);
+}
+
+.shop-type-general_store .grid-item-description {
+	color: #fde68a;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 /* Wood texture effect */

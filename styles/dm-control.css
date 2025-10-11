@@ -765,7 +765,7 @@
 }
 
 .category-cell {
-	color: var(--text-muted);
+	color: var(--text-normal);
 	font-size: 0.8rem;
 	text-transform: capitalize;
 	white-space: nowrap;

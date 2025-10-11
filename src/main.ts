@@ -65,12 +65,14 @@ export default class ShopboardPlugin extends Plugin {
 
 		// Perform initial item scan
 		try {
-			await this.itemParser.scanItemFolders(this.settings.itemFolders);
+			// Scan both item and equipment folders
+			const allFolders = [...this.settings.itemFolders, ...this.settings.equipmentFolders];
+			await this.itemParser.scanItemFolders(allFolders);
 			const stats = this.itemParser.getCacheStats();
 			console.log(`Item cache initialized: ${stats.itemCount} items loaded`);
 
 			if (stats.itemCount === 0) {
-				new Notice('Shopboard: No items found. Please configure item folders in settings.');
+				new Notice('Shopboard: No items found. Please configure item/equipment folders in settings.');
 			}
 		} catch (error) {
 			console.error('Error during initial item scan:', error);
@@ -93,6 +95,9 @@ export default class ShopboardPlugin extends Plugin {
 
 		// Register context menu
 		this.registerContextMenu();
+
+		// Register item file modification listener
+		this.registerItemModificationListener();
 
 		// Register ribbon icon with menu (Phase 3)
 		this.addRibbonIcon('clipboard-list', 'Shopboard Menu', (evt: MouseEvent) => {
@@ -118,6 +123,11 @@ export default class ShopboardPlugin extends Plugin {
 	 */
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+		// Migration: Ensure equipmentFolders exists for older versions
+		if (!this.settings.equipmentFolders || this.settings.equipmentFolders.length === 0) {
+			this.settings.equipmentFolders = ['Equipment'];
+		}
 	}
 
 	/**
@@ -168,7 +178,9 @@ export default class ShopboardPlugin extends Plugin {
 			name: 'Refresh item cache',
 			callback: async () => {
 				try {
-					await this.itemParser.scanItemFolders(this.settings.itemFolders);
+					// Scan both item and equipment folders
+					const allFolders = [...this.settings.itemFolders, ...this.settings.equipmentFolders];
+					await this.itemParser.scanItemFolders(allFolders);
 					const stats = this.itemParser.getCacheStats();
 					console.log(`Item cache refreshed: ${stats.itemCount} items loaded`);
 					new Notice(`Item cache refreshed: ${stats.itemCount} items found`);
@@ -239,6 +251,29 @@ export default class ShopboardPlugin extends Plugin {
 							});
 					});
 				}
+			})
+		);
+	}
+
+	/**
+	 * Register listener for item file modifications
+	 * When an item is modified, refresh its cache and notify open shop views
+	 * Uses metadataCache 'changed' event to ensure cache is updated before refreshing
+	 */
+	private registerItemModificationListener(): void {
+		this.registerEvent(
+			this.app.metadataCache.on('changed', async (file, data, cache) => {
+				// Check if this is an item file (cache is already updated at this point)
+				// Accept both 'item' and 'equipment' types
+				if (!cache.frontmatter || (cache.frontmatter.type !== 'item' && cache.frontmatter.type !== 'equipment')) {
+					return;
+				}
+
+				// Refresh the item in the cache (will now read updated metadata)
+				await this.itemParser.refreshItem(file);
+
+				// Notify shop views that an item was modified
+				this.app.workspace.trigger('shopboard:item-modified', file.path);
 			})
 		);
 	}
@@ -425,7 +460,9 @@ export default class ShopboardPlugin extends Plugin {
 				.setIcon('refresh-cw')
 				.onClick(async () => {
 					try {
-						await this.itemParser.scanItemFolders(this.settings.itemFolders);
+						// Scan both item and equipment folders
+						const allFolders = [...this.settings.itemFolders, ...this.settings.equipmentFolders];
+						await this.itemParser.scanItemFolders(allFolders);
 						const stats = this.itemParser.getCacheStats();
 						new Notice(`Item cache refreshed: ${stats.itemCount} items found`);
 					} catch (error) {

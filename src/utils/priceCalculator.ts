@@ -54,6 +54,25 @@ export class PriceCalculator {
 			price = 0;
 		}
 
+		// Check if rounding is enabled
+		if (this.currencyConfig.roundForPlayers) {
+			// Find gold denomination (highest value denomination)
+			const goldDenom = this.currencyConfig.denominations
+				.find(d => d.name === 'gp' || d.value === 1);
+
+			if (goldDenom) {
+				// Calculate gold value
+				const goldValue = price * goldDenom.value;
+
+				// Only round if gold value >= 1
+				if (goldValue >= 1) {
+					const roundedGold = Math.ceil(goldValue);
+					return `${roundedGold} ${goldDenom.name}`;
+				}
+			}
+		}
+
+		// Default behavior for prices < 1 gold or when rounding is disabled
 		if (this.currencyConfig.display === 'auto') {
 			return this.convertToMultipleDenominations(price).formatted;
 		} else {

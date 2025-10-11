@@ -80,3 +80,15 @@
 	background: #f44336 !important;
 	color: white !important;
 }
+
+/* Equipment type - No border (equipment has no rarity) */
+.shopboard-display .inventory-item.item-type-equipment {
+	border-left: 6px solid transparent !important;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.shopboard-display .inventory-item.item-type-equipment .item-category-badge {
+	background: #8b7355 !important;
+	color: white !important;
+}

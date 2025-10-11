@@ -60,6 +60,8 @@ export interface ShopData {
 	inventory: ShopInventoryItem[];
 	/** Number of columns for shop display grid (defaults to 4) */
 	columns?: number;
+	/** Number of rows for shop display grid (defaults to auto-calculated based on viewport) */
+	rows?: number;
 	/** Show item descriptions in display (defaults to true) */
 	showDescriptions?: boolean;
 	/** Current page for paginated display (defaults to 1) */
@@ -100,6 +102,8 @@ export interface CurrencyConfig {
 	denominations: Denomination[];
 	/** Display mode: auto = convert to multiple denominations, simple = single denomination */
 	display: 'auto' | 'simple';
+	/** Round prices up to nearest gold integer for player display */
+	roundForPlayers?: boolean;
 }
 
 /**
@@ -118,6 +122,8 @@ export interface ShopTypeConfig {
 export interface ShopboardSettings {
 	/** Folders to scan for item notes */
 	itemFolders: string[];
+	/** Folders to scan for equipment notes */
+	equipmentFolders: string[];
 	/** Currency system configuration */
 	currency: CurrencyConfig;
 	/** Shop type configurations */

@@ -335,7 +335,7 @@
 /* Category header cells */
 .grid-category-header {
 	background: transparent;
-	color: var(--text-muted);
+	color: var(--text-normal);
 	font-size: 1rem;
 	font-weight: 700;
 	text-transform: uppercase;

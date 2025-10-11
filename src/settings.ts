@@ -7,6 +7,7 @@ import { ShopboardSettings, ImageStyle } from './types';
  */
 export const DEFAULT_SETTINGS: ShopboardSettings = {
 	itemFolders: ['Items'],
+	equipmentFolders: ['Equipment'],
 	currency: {
 		system: 'dnd',
 		denominations: [
@@ -14,7 +15,8 @@ export const DEFAULT_SETTINGS: ShopboardSettings = {
 			{ name: 'sp', label: 'Silver', value: 0.1 },
 			{ name: 'cp', label: 'Copper', value: 0.01 }
 		],
-		display: 'auto'
+		display: 'auto',
+		roundForPlayers: false
 	},
 	shopTypes: {
 		magic_shop: {
@@ -84,8 +86,38 @@ export class ShopboardSettingTab extends PluginSettingTab {
 					this.plugin.settings.itemFolders = folders;
 					await this.plugin.saveSettings();
 
-					// Trigger item cache refresh
-					await this.plugin.itemParser.scanItemFolders(folders);
+					// Trigger item cache refresh with both item and equipment folders
+					const allFolders = [...this.plugin.settings.itemFolders, ...this.plugin.settings.equipmentFolders];
+					await this.plugin.itemParser.scanItemFolders(allFolders);
+				}));
+
+		// Equipment Folders Setting
+		new Setting(containerEl)
+			.setName('Equipment Folders')
+			.setDesc('Folders to scan for equipment notes (comma-separated)')
+			.addText(text => text
+				.setPlaceholder('Equipment, Weapons, Armor')
+				.setValue(this.plugin.settings.equipmentFolders.join(', '))
+				.onChange(async (value) => {
+					const folders = value
+						.split(',')
+						.map(f => f.trim())
+						.filter(f => f.length > 0);
+
+					// Validation: Ensure at least one folder is specified
+					if (folders.length === 0) {
+						this.plugin.settings.equipmentFolders = ['Equipment'];
+						await this.plugin.saveSettings();
+						text.setValue('Equipment');
+						return;
+					}
+
+					this.plugin.settings.equipmentFolders = folders;
+					await this.plugin.saveSettings();
+
+					// Trigger item cache refresh with both folders
+					const allFolders = [...this.plugin.settings.itemFolders, ...this.plugin.settings.equipmentFolders];
+					await this.plugin.itemParser.scanItemFolders(allFolders);
 				}));
 
 		// Currency System Setting
@@ -111,6 +143,17 @@ export class ShopboardSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.currency.display)
 				.onChange(async (value) => {
 					this.plugin.settings.currency.display = value as 'auto' | 'simple';
+					await this.plugin.saveSettings();
+				}));
+
+		// Round Prices for Players Setting
+		new Setting(containerEl)
+			.setName('Round Prices for Players')
+			.setDesc('When gold price is >= 1, round up to nearest integer (e.g., 1.56 gp → 2 gp). Prices below 1 gp remain unchanged.')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.currency.roundForPlayers ?? false)
+				.onChange(async (value) => {
+					this.plugin.settings.currency.roundForPlayers = value;
 					await this.plugin.saveSettings();
 				}));
 

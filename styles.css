@@ -404,7 +404,7 @@
 /* Category header cells */
 .grid-category-header {
 	background: transparent;
-	color: var(--text-muted);
+	color: var(--text-normal);
 	font-size: 1rem;
 	font-weight: 700;
 	text-transform: uppercase;
@@ -1769,7 +1769,7 @@
 }
 
 .category-cell {
-	color: var(--text-muted);
+	color: var(--text-normal);
 	font-size: 0.8rem;
 	text-transform: capitalize;
 	white-space: nowrap;
@@ -2247,17 +2247,52 @@
 	--theme-accent: #c084fc;
 	--theme-background: rgba(124, 58, 237, 0.05);
 	--theme-border: rgba(124, 58, 237, 0.3);
+	position: relative;
+}
+
+/* Background image with overlay - image set dynamically via JavaScript */
+.shop-type-magic_shop::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: var(--shop-background-image);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.4;
+	z-index: 0;
+}
+
+/* Dark overlay for readability */
+.shop-type-magic_shop::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, rgba(124, 58, 237, 0.85) 0%, rgba(88, 28, 135, 0.9) 100%);
+	z-index: 0;
+}
+
+/* Ensure content is above background */
+.shop-type-magic_shop > * {
+	position: relative;
+	z-index: 1;
 }
 
 /* Header styling */
 .shop-type-magic_shop .shop-header {
-	background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+	background: linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(168, 85, 247, 0.3) 100%);
 	border-bottom-color: var(--theme-border);
 	position: relative;
+	backdrop-filter: blur(8px);
 }
 
 .shop-type-magic_shop .shop-header::before {
-	content: '✦';
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
@@ -2267,7 +2302,6 @@
 }
 
 .shop-type-magic_shop .shop-header::after {
-	content: '✦';
 	position: absolute;
 	top: 1rem;
 	right: 1rem;
@@ -2279,6 +2313,7 @@
 .shop-type-magic_shop .shop-name {
 	color: var(--theme-primary);
 	text-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+	font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
 }
 
 .shop-type-magic_shop .shop-type-badge {
@@ -2288,15 +2323,16 @@
 
 /* Inventory items */
 .shop-type-magic_shop .inventory-item {
-	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(124, 58, 237, 0.03) 100%);
+	background: linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(88, 28, 135, 0.75) 100%);
 	border-color: var(--theme-border);
-	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+	box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3), 0 0 20px rgba(168, 85, 247, 0.2);
+	backdrop-filter: blur(4px);
 }
 
 .shop-type-magic_shop .inventory-item:hover {
 	border-color: var(--theme-secondary);
-	box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
-	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(124, 58, 237, 0.08) 100%);
+	box-shadow: 0 8px 24px rgba(124, 58, 237, 0.5), 0 0 30px rgba(168, 85, 247, 0.4);
+	background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(88, 28, 135, 0.85) 100%);
 }
 
 .shop-type-magic_shop .inventory-item::before {
@@ -2315,13 +2351,21 @@
 	opacity: 1;
 }
 
-.shop-type-magic_shop .item-name {
-	color: var(--theme-primary);
+.shop-type-magic_shop .item-name,
+.shop-type-magic_shop .grid-item-name {
+	color: #e9d5ff;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 20px rgba(168, 85, 247, 0.6);
 }
 
-.shop-type-magic_shop .item-price {
-	color: var(--theme-secondary);
-	text-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+.shop-type-magic_shop .item-price,
+.shop-type-magic_shop .grid-item-price {
+	color: #fbbf24;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(251, 191, 36, 0.6);
+}
+
+.shop-type-magic_shop .grid-item-description {
+	color: #d8b4fe;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 /* Rarity badges for magic shop */
@@ -2358,17 +2402,52 @@
 	--theme-accent: #f97316;
 	--theme-background: rgba(220, 38, 38, 0.05);
 	--theme-border: rgba(220, 38, 38, 0.3);
+	position: relative;
+}
+
+/* Background image with overlay - image set dynamically via JavaScript */
+.shop-type-blacksmith::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: var(--shop-background-image);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.5;
+	z-index: 0;
+}
+
+/* Dark overlay with forge glow */
+.shop-type-blacksmith::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, rgba(30, 27, 27, 0.85) 0%, rgba(120, 40, 10, 0.9) 100%);
+	z-index: 0;
+}
+
+/* Ensure content is above background */
+.shop-type-blacksmith > * {
+	position: relative;
+	z-index: 1;
 }
 
 /* Header styling */
 .shop-type-blacksmith .shop-header {
-	background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(234, 88, 12, 0.1) 100%);
+	background: linear-gradient(135deg, rgba(220, 38, 38, 0.3) 0%, rgba(234, 88, 12, 0.3) 100%);
 	border-bottom: 3px solid var(--theme-border);
 	border-bottom-style: solid;
+	backdrop-filter: blur(8px);
 }
 
 .shop-type-blacksmith .shop-header::before {
-	content: '⚒';
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
@@ -2381,6 +2460,7 @@
 	color: var(--theme-primary);
 	font-weight: 800;
 	text-shadow: 2px 2px 0 rgba(220, 38, 38, 0.2);
+	font-family: 'Arial Black', 'Arial Bold', Gadget, sans-serif;
 }
 
 .shop-type-blacksmith .shop-type-badge {
@@ -2392,30 +2472,41 @@
 
 /* Inventory items */
 .shop-type-blacksmith .inventory-item {
-	background: var(--background-secondary);
+	background: linear-gradient(135deg, rgba(40, 20, 10, 0.9) 0%, rgba(60, 30, 15, 0.85) 100%);
 	border: 3px solid var(--theme-border);
 	border-left-width: 6px;
-	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15),
-				inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3),
+				inset 0 1px 0 rgba(255, 255, 255, 0.1),
+				0 0 20px rgba(234, 88, 12, 0.2);
+	backdrop-filter: blur(4px);
 }
 
 .shop-type-blacksmith .inventory-item:hover {
 	border-color: var(--theme-secondary);
-	box-shadow: 0 8px 24px rgba(234, 88, 12, 0.3),
-				inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	box-shadow: 0 8px 24px rgba(234, 88, 12, 0.5),
+				inset 0 1px 0 rgba(255, 255, 255, 0.1),
+				0 0 30px rgba(234, 88, 12, 0.4);
 	transform: translateY(-4px);
 }
 
-.shop-type-blacksmith .item-name {
-	color: var(--theme-primary);
+.shop-type-blacksmith .item-name,
+.shop-type-blacksmith .grid-item-name {
+	color: #fed7aa;
 	font-weight: 800;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 20px rgba(234, 88, 12, 0.6);
 }
 
-.shop-type-blacksmith .item-price {
-	color: #ffffff;
+.shop-type-blacksmith .item-price,
+.shop-type-blacksmith .grid-item-price {
+	color: #fbbf24;
 	font-weight: 800;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 15px rgba(251, 191, 36, 0.6);
+}
+
+.shop-type-blacksmith .grid-item-description {
+	color: #fdba74;
 	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
 
@@ -2464,16 +2555,51 @@
 	--theme-accent: #d97706;
 	--theme-background: rgba(146, 64, 14, 0.05);
 	--theme-border: rgba(146, 64, 14, 0.3);
+	position: relative;
+}
+
+/* Background image with overlay - image set dynamically via JavaScript */
+.shop-type-general_store::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: var(--shop-background-image);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.45;
+	z-index: 0;
+}
+
+/* Warm overlay for cozy atmosphere */
+.shop-type-general_store::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, rgba(58, 35, 20, 0.85) 0%, rgba(92, 55, 30, 0.88) 100%);
+	z-index: 0;
+}
+
+/* Ensure content is above background */
+.shop-type-general_store > * {
+	position: relative;
+	z-index: 1;
 }
 
 /* Header styling */
 .shop-type-general_store .shop-header {
-	background: linear-gradient(135deg, rgba(146, 64, 14, 0.08) 0%, rgba(180, 83, 9, 0.08) 100%);
+	background: linear-gradient(135deg, rgba(146, 64, 14, 0.3) 0%, rgba(180, 83, 9, 0.3) 100%);
 	border-bottom: 3px solid var(--theme-border);
+	backdrop-filter: blur(8px);
 }
 
 .shop-type-general_store .shop-header::before {
-	content: '⚖';
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
@@ -2484,7 +2610,7 @@
 
 .shop-type-general_store .shop-name {
 	color: var(--theme-primary);
-	font-family: var(--font-text);
+	font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .shop-type-general_store .shop-type-badge {
@@ -2494,24 +2620,34 @@
 
 /* Inventory items */
 .shop-type-general_store .inventory-item {
-	background: var(--background-secondary);
+	background: linear-gradient(135deg, rgba(58, 35, 20, 0.88) 0%, rgba(80, 50, 30, 0.85) 100%);
 	border: 2px solid var(--theme-border);
-	box-shadow: 0 2px 6px rgba(146, 64, 14, 0.1);
+	box-shadow: 0 2px 6px rgba(146, 64, 14, 0.3), 0 0 15px rgba(180, 83, 9, 0.15);
+	backdrop-filter: blur(4px);
 }
 
 .shop-type-general_store .inventory-item:hover {
 	border-color: var(--theme-secondary);
-	box-shadow: 0 6px 16px rgba(146, 64, 14, 0.2);
+	box-shadow: 0 6px 16px rgba(146, 64, 14, 0.4), 0 0 25px rgba(180, 83, 9, 0.3);
 }
 
-.shop-type-general_store .item-name {
-	color: var(--theme-primary);
+.shop-type-general_store .item-name,
+.shop-type-general_store .grid-item-name {
+	color: #fef3c7;
 	font-weight: 600;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(217, 119, 6, 0.4);
 }
 
-.shop-type-general_store .item-price {
-	color: var(--theme-secondary);
+.shop-type-general_store .item-price,
+.shop-type-general_store .grid-item-price {
+	color: #fbbf24;
 	font-weight: 700;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 12px rgba(251, 191, 36, 0.5);
+}
+
+.shop-type-general_store .grid-item-description {
+	color: #fde68a;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 /* Wood texture effect */
@@ -2561,16 +2697,51 @@
 	--theme-alt: #8b5cf6;
 	--theme-background: rgba(5, 150, 105, 0.05);
 	--theme-border: rgba(5, 150, 105, 0.3);
+	position: relative;
+}
+
+/* Background image with overlay - image set dynamically via JavaScript */
+.shop-type-alchemist::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: var(--shop-background-image);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.45;
+	z-index: 0;
+}
+
+/* Mystical overlay with potion glow */
+.shop-type-alchemist::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, rgba(15, 50, 40, 0.88) 0%, rgba(30, 80, 60, 0.85) 100%);
+	z-index: 0;
+}
+
+/* Ensure content is above background */
+.shop-type-alchemist > * {
+	position: relative;
+	z-index: 1;
 }
 
 /* Header styling */
 .shop-type-alchemist .shop-header {
-	background: linear-gradient(135deg, rgba(5, 150, 105, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+	background: linear-gradient(135deg, rgba(5, 150, 105, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%);
 	border-bottom: 3px double var(--theme-border);
+	backdrop-filter: blur(8px);
 }
 
 .shop-type-alchemist .shop-header::before {
-	content: '⚗';
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
@@ -2580,7 +2751,6 @@
 }
 
 .shop-type-alchemist .shop-header::after {
-	content: '🧪';
 	position: absolute;
 	top: 1rem;
 	right: 1rem;
@@ -2591,6 +2761,7 @@
 .shop-type-alchemist .shop-name {
 	color: var(--theme-primary);
 	font-style: italic;
+	font-family: 'Brush Script MT', cursive;
 }
 
 .shop-type-alchemist .shop-type-badge {
@@ -2600,17 +2771,19 @@
 
 /* Inventory items */
 .shop-type-alchemist .inventory-item {
-	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(5, 150, 105, 0.03) 100%);
+	background: linear-gradient(135deg, rgba(20, 60, 50, 0.88) 0%, rgba(30, 80, 60, 0.85) 100%);
 	border: 2px solid var(--theme-border);
-	box-shadow: 0 2px 8px rgba(5, 150, 105, 0.1);
+	box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3),
+				0 0 20px rgba(16, 185, 129, 0.2);
 	position: relative;
 	overflow: hidden;
+	backdrop-filter: blur(4px);
 }
 
 .shop-type-alchemist .inventory-item:hover {
 	border-color: var(--theme-secondary);
-	box-shadow: 0 8px 24px rgba(5, 150, 105, 0.25),
-				0 0 20px rgba(139, 92, 246, 0.1);
+	box-shadow: 0 8px 24px rgba(5, 150, 105, 0.5),
+				0 0 30px rgba(139, 92, 246, 0.3);
 }
 
 /* Bubble effect */
@@ -2634,14 +2807,22 @@
 	opacity: 1;
 }
 
-.shop-type-alchemist .item-name {
-	color: var(--theme-primary);
+.shop-type-alchemist .item-name,
+.shop-type-alchemist .grid-item-name {
+	color: #d1fae5;
 	font-weight: 600;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 20px rgba(16, 185, 129, 0.6);
 }
 
-.shop-type-alchemist .item-price {
-	color: var(--theme-secondary);
-	text-shadow: 0 0 10px rgba(5, 150, 105, 0.2);
+.shop-type-alchemist .item-price,
+.shop-type-alchemist .grid-item-price {
+	color: #fbbf24;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(251, 191, 36, 0.6);
+}
+
+.shop-type-alchemist .grid-item-description {
+	color: #a7f3d0;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 /* Potion glow effect */
@@ -2756,6 +2937,18 @@
 
 .shopboard-display .inventory-item.rarity-artifact .item-rarity-badge {
 	background: #f44336 !important;
+	color: white !important;
+}
+
+/* Equipment type - No border (equipment has no rarity) */
+.shopboard-display .inventory-item.item-type-equipment {
+	border-left: 6px solid transparent !important;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.shopboard-display .inventory-item.item-type-equipment .item-category-badge {
+	background: #8b7355 !important;
 	color: white !important;
 }
 

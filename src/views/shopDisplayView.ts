@@ -77,6 +77,13 @@ export class ShopDisplayView extends ItemView {
 			})
 		);
 
+		// Listen for row change events from DM control
+		this.registerEvent(
+			this.app.workspace.on('shopboard:set-rows', (rows: number | undefined) => {
+				this.setRows(rows);
+			})
+		);
+
 		// Listen for show descriptions toggle from DM control
 		this.registerEvent(
 			this.app.workspace.on('shopboard:set-show-descriptions', (show: boolean) => {
@@ -88,6 +95,26 @@ export class ShopDisplayView extends ItemView {
 		this.registerEvent(
 			this.app.workspace.on('shopboard:change-page', (page: number) => {
 				this.setCurrentPage(page);
+			})
+		);
+
+		// Listen for item modification events
+		this.registerEvent(
+			this.app.workspace.on('shopboard:item-modified', async (itemPath: string) => {
+				// Skip if we're currently updating to prevent race conditions
+				if (this.isUpdating) {
+					return;
+				}
+
+				// Check if the modified item is in our current shop's inventory
+				const isInInventory = this.shopData?.inventory.some(
+					invItem => invItem.itemData?.path === itemPath
+				);
+
+				if (isInInventory) {
+					// Refresh shop data while preserving pagination
+					await this.refreshShopData();
+				}
 			})
 		);
 	}
@@ -138,6 +165,47 @@ export class ShopDisplayView extends ItemView {
 	}
 
 	/**
+	 * Refresh shop data without resetting pagination
+	 * Used when items are modified to preserve current page state
+	 */
+	async refreshShopData(): Promise<void> {
+		if (!this.shopFile) return;
+
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		try {
+			// Store current page before refresh
+			const previousPage = this.currentPage;
+
+			// Parse the shop note to get updated inventory
+			const shopData = await this.plugin.shopParser.parseShopNote(this.shopFile);
+
+			if (shopData) {
+				this.shopData = shopData;
+
+				// Preserve the current page (don't reload from frontmatter)
+				this.currentPage = previousPage;
+
+				// Recalculate items per page (in case viewport changed)
+				this.itemsPerPage = this.calculateItemsPerPage();
+
+				// Validate current page - only adjust if out of bounds
+				const totalPages = this.calculateTotalPages();
+				if (this.currentPage > totalPages) {
+					this.currentPage = Math.max(1, totalPages);
+				}
+
+				this.render();
+			}
+		} catch (error) {
+			console.error('Error refreshing shop data:', error);
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
 	 * Set columns for the shop display
 	 */
 	async setColumns(columns: number): Promise<void> {
@@ -173,6 +241,49 @@ export class ShopDisplayView extends ItemView {
 			this.app.workspace.trigger('shopboard:columns-changed', columns);
 		} catch (error) {
 			console.error('Error updating columns:', error);
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Set rows for the shop display
+	 */
+	async setRows(rows: number | undefined): Promise<void> {
+		if (!this.shopData || !this.shopFile) {
+			return;
+		}
+
+		// Validate row count if defined (1-30)
+		if (rows !== undefined) {
+			rows = Math.max(1, Math.min(30, rows));
+		}
+
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		try {
+			// Update shop data
+			this.shopData.rows = rows;
+
+			// Recalculate items per page for new row count
+			this.itemsPerPage = this.calculateItemsPerPage();
+
+			// Reset to page 1 when changing rows
+			this.currentPage = 1;
+			this.shopData.currentPage = 1;
+
+			// Re-render to apply new rows
+			this.render();
+
+			// Save to shop frontmatter (always save, even when undefined for auto)
+			await this.plugin.shopModifier.updateRows(this.shopFile, rows);
+			await this.plugin.shopModifier.updateCurrentPage(this.shopFile, 1);
+
+			// Notify DM control of row change
+			this.app.workspace.trigger('shopboard:rows-changed', rows);
+		} catch (error) {
+			console.error('Error updating rows:', error);
 		} finally {
 			this.isUpdating = false;
 		}
@@ -250,6 +361,31 @@ export class ShopDisplayView extends ItemView {
 	}
 
 	/**
+	 * Get current row count (undefined = auto-calculate)
+	 */
+	getRows(): number | undefined {
+		return this.shopData?.rows;
+	}
+
+	/**
+	 * Get category for an item based on its type
+	 * - Equipment uses equipment_type field
+	 * - Magic items use item_type field
+	 */
+	private getItemCategory(itemData: ItemData | null | undefined): string {
+		if (!itemData?.metadata) return 'uncategorized';
+
+		const itemType = itemData.metadata.type;
+		if (itemType === 'equipment') {
+			const rawType = itemData.metadata.equipment_type || 'uncategorized';
+			return rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+		} else {
+			const rawType = itemData.metadata.item_type || 'uncategorized';
+			return rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+		}
+	}
+
+	/**
 	 * Calculate total pages based on total cells (items + category headers)
 	 */
 	private calculateTotalPages(): number {
@@ -261,8 +397,7 @@ export class ShopDisplayView extends ItemView {
 		// Count unique categories
 		const categories = new Set<string>();
 		for (const item of availableItems) {
-			const rawType = item.itemData?.metadata?.item_type || 'uncategorized';
-			const category = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+			const category = this.getItemCategory(item.itemData);
 			categories.add(category);
 		}
 
@@ -281,6 +416,15 @@ export class ShopDisplayView extends ItemView {
 		if (!container) return 20;
 
 		const columns = this.getColumns();
+		const fixedRows = this.getRows();
+
+		// If rows is manually set, use it
+		if (fixedRows !== undefined) {
+			this.itemsPerPage = fixedRows * columns;
+			return fixedRows * columns;
+		}
+
+		// Otherwise, auto-calculate based on viewport
 		const viewportHeight = container.clientHeight;
 		const headerHeight = 80; // Header + padding
 		const gridPaddingVertical = 32; // Grid padding: 1rem top + 1rem bottom
@@ -289,7 +433,7 @@ export class ShopDisplayView extends ItemView {
 
 		// Standard cell height and gap between rows
 		const cellHeight = 100;
-		const gap = 4; // 0.5rem gap between rows (halved for less conservative calculation)
+		const gap = 8; // 0.5rem gap between rows (matches CSS)
 
 		// Calculate how many rows fit in viewport, accounting for gaps between rows
 		// Formula: rows * cellHeight + (rows - 1) * gap <= availableHeight
@@ -307,15 +451,29 @@ export class ShopDisplayView extends ItemView {
 	 */
 	private getGridConfig(): { rows: number; columns: number; cellHeight: number } {
 		const container = this.containerEl.children[1] as HTMLElement;
+		const columns = this.getColumns();
+		const fixedRows = this.getRows();
+
+		// Calculate viewport dimensions
 		const viewportHeight = container?.clientHeight || 800;
 		const headerHeight = 80;
 		const gridPaddingVertical = 32; // Grid padding: 1rem top + 1rem bottom
 		const headerMarginBottom = 8; // Header margin-bottom: 0.5rem
 		const availableHeight = viewportHeight - headerHeight - gridPaddingVertical - headerMarginBottom;
+		const gap = 8; // 0.5rem gap between rows (matches CSS)
 
-		const columns = this.getColumns();
+		// If rows is manually set, calculate cell height to fill viewport
+		if (fixedRows !== undefined) {
+			// Divide available height by number of rows, accounting for gaps
+			// Formula: rows * cellHeight + (rows - 1) * gap = availableHeight
+			// Solving: cellHeight = (availableHeight - (rows - 1) * gap) / rows
+			const cellHeight = Math.floor((availableHeight - (fixedRows - 1) * gap) / fixedRows);
+
+			return { rows: fixedRows, columns, cellHeight };
+		}
+
+		// Otherwise, auto-calculate based on fixed 100px cells
 		const cellHeight = 100; // Standard cell height
-		const gap = 4; // 0.5rem gap between rows (halved for less conservative calculation)
 
 		// Calculate rows accounting for gaps between them
 		const rows = Math.max(1, Math.floor((availableHeight + gap) / (cellHeight + gap)));
@@ -343,6 +501,10 @@ export class ShopDisplayView extends ItemView {
 			const mainDisplay = splitContainer.createDiv({
 				cls: `shopboard-display shop-type-${this.shopData.shopType} main-display`
 			});
+
+			// Set background image dynamically using Obsidian's resource path
+			this.setShopBackground(mainDisplay, this.shopData.shopType);
+
 			this.renderHeader(mainDisplay);
 			this.renderInventory(mainDisplay);
 
@@ -353,6 +515,9 @@ export class ShopDisplayView extends ItemView {
 			const displayEl = container.createDiv({
 				cls: `shopboard-display shop-type-${this.shopData.shopType}`
 			});
+
+			// Set background image dynamically using Obsidian's resource path
+			this.setShopBackground(displayEl, this.shopData.shopType);
 
 			// Render shop header
 			this.renderHeader(displayEl);
@@ -397,18 +562,6 @@ export class ShopDisplayView extends ItemView {
 			text: this.shopData!.name
 		});
 
-		// Price modifier indicator (if not 0)
-		if (this.shopData!.priceModifier !== 0) {
-			const modifierText = this.shopData!.priceModifier > 0
-				? `+${this.shopData!.priceModifier}%`
-				: `${this.shopData!.priceModifier}%`;
-
-			headerEl.createDiv({
-				cls: 'price-modifier-badge',
-				text: modifierText
-			});
-		}
-
 		// Page indicator
 		const totalPages = this.calculateTotalPages();
 		if (totalPages > 1) {
@@ -442,8 +595,7 @@ export class ShopDisplayView extends ItemView {
 		const itemsByCategory = new Map<string, typeof sortedItems>();
 
 		for (const item of sortedItems) {
-			const rawType = item.itemData?.metadata?.item_type || 'uncategorized';
-			const category = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+			const category = this.getItemCategory(item.itemData);
 
 			if (!itemsByCategory.has(category)) {
 				itemsByCategory.set(category, []);
@@ -540,6 +692,11 @@ export class ShopDisplayView extends ItemView {
 			itemEl.addClass(`rarity-${item.rarity.toLowerCase().replace(/\s+/g, '-')}`);
 		}
 
+		// Add item type class for equipment (non-magical items)
+		if (item.metadata?.type === 'equipment') {
+			itemEl.addClass('item-type-equipment');
+		}
+
 		// Calculate image size based on cell height - fill the full height minus top and bottom padding
 		const imageHeight = Math.floor(gridConfig.cellHeight - 16); // -16px for padding (8px top + 8px bottom)
 
@@ -630,9 +787,13 @@ export class ShopDisplayView extends ItemView {
 			itemEl.addClass(`rarity-${item.rarity.toLowerCase().replace(/\s+/g, '-')}`);
 		}
 
+		// Add item type class for equipment (non-magical items)
+		if (item.metadata?.type === 'equipment') {
+			itemEl.addClass('item-type-equipment');
+		}
+
 		// Category badge at the top
-		const rawType = item.metadata?.item_type || 'uncategorized';
-		const category = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+		const category = this.getItemCategory(item);
 		itemEl.createDiv({
 			cls: 'item-category-badge',
 			text: category
@@ -732,6 +893,11 @@ export class ShopDisplayView extends ItemView {
 		// Add rarity class if available
 		if (item.rarity) {
 			itemEl.addClass(`rarity-${item.rarity.toLowerCase().replace(/\s+/g, '-')}`);
+		}
+
+		// Add item type class for equipment (non-magical items)
+		if (item.metadata?.type === 'equipment') {
+			itemEl.addClass('item-type-equipment');
 		}
 
 		// Item image (if available)
@@ -1046,10 +1212,38 @@ export class ShopDisplayView extends ItemView {
 					}
 
 					this.refreshInterval = window.setTimeout(async () => {
-						await this.setShop(this.shopFile!);
+						await this.refreshShopData();
 					}, 500);
 				}
 			})
 		);
+	}
+
+	/**
+	 * Set shop background image dynamically using Obsidian's resource path API
+	 */
+	private setShopBackground(element: HTMLElement, shopType: string): void {
+		// Map shop types to background image filenames
+		const backgroundMap: Record<string, string> = {
+			'magic_shop': 'magic-shop-bg.png',
+			'blacksmith': 'blacksmith-bg.png',
+			'general_store': 'general-store-bg.png',
+			'alchemist': 'alchemist-bg.png'
+		};
+
+		const backgroundFilename = backgroundMap[shopType];
+		if (!backgroundFilename) {
+			console.warn(`No background image defined for shop type: ${shopType}`);
+			return;
+		}
+
+		// Construct path relative to vault root (not absolute path)
+		const backgroundPath = `.obsidian/plugins/shopboard/assets/backgrounds/${backgroundFilename}`;
+
+		// Use Obsidian's resource path API (same as item images)
+		const resourcePath = this.app.vault.adapter.getResourcePath(backgroundPath);
+
+		// Set as CSS custom property on the element
+		element.style.setProperty('--shop-background-image', `url("${resourcePath}")`);
 	}
 }

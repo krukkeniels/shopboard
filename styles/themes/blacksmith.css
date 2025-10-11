@@ -8,17 +8,52 @@
 	--theme-accent: #f97316;
 	--theme-background: rgba(220, 38, 38, 0.05);
 	--theme-border: rgba(220, 38, 38, 0.3);
+	position: relative;
+}
+
+/* Background image with overlay - image set dynamically via JavaScript */
+.shop-type-blacksmith::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: var(--shop-background-image);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.5;
+	z-index: 0;
+}
+
+/* Dark overlay with forge glow */
+.shop-type-blacksmith::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, rgba(30, 27, 27, 0.85) 0%, rgba(120, 40, 10, 0.9) 100%);
+	z-index: 0;
+}
+
+/* Ensure content is above background */
+.shop-type-blacksmith > * {
+	position: relative;
+	z-index: 1;
 }
 
 /* Header styling */
 .shop-type-blacksmith .shop-header {
-	background: linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(234, 88, 12, 0.1) 100%);
+	background: linear-gradient(135deg, rgba(220, 38, 38, 0.3) 0%, rgba(234, 88, 12, 0.3) 100%);
 	border-bottom: 3px solid var(--theme-border);
 	border-bottom-style: solid;
+	backdrop-filter: blur(8px);
 }
 
 .shop-type-blacksmith .shop-header::before {
-	content: '⚒';
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
@@ -31,6 +66,7 @@
 	color: var(--theme-primary);
 	font-weight: 800;
 	text-shadow: 2px 2px 0 rgba(220, 38, 38, 0.2);
+	font-family: 'Arial Black', 'Arial Bold', Gadget, sans-serif;
 }
 
 .shop-type-blacksmith .shop-type-badge {
@@ -42,30 +78,41 @@
 
 /* Inventory items */
 .shop-type-blacksmith .inventory-item {
-	background: var(--background-secondary);
+	background: linear-gradient(135deg, rgba(40, 20, 10, 0.9) 0%, rgba(60, 30, 15, 0.85) 100%);
 	border: 3px solid var(--theme-border);
 	border-left-width: 6px;
-	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15),
-				inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3),
+				inset 0 1px 0 rgba(255, 255, 255, 0.1),
+				0 0 20px rgba(234, 88, 12, 0.2);
+	backdrop-filter: blur(4px);
 }
 
 .shop-type-blacksmith .inventory-item:hover {
 	border-color: var(--theme-secondary);
-	box-shadow: 0 8px 24px rgba(234, 88, 12, 0.3),
-				inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	box-shadow: 0 8px 24px rgba(234, 88, 12, 0.5),
+				inset 0 1px 0 rgba(255, 255, 255, 0.1),
+				0 0 30px rgba(234, 88, 12, 0.4);
 	transform: translateY(-4px);
 }
 
-.shop-type-blacksmith .item-name {
-	color: var(--theme-primary);
+.shop-type-blacksmith .item-name,
+.shop-type-blacksmith .grid-item-name {
+	color: #fed7aa;
 	font-weight: 800;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 20px rgba(234, 88, 12, 0.6);
 }
 
-.shop-type-blacksmith .item-price {
-	color: #ffffff;
+.shop-type-blacksmith .item-price,
+.shop-type-blacksmith .grid-item-price {
+	color: #fbbf24;
 	font-weight: 800;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 15px rgba(251, 191, 36, 0.6);
+}
+
+.shop-type-blacksmith .grid-item-description {
+	color: #fdba74;
 	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
 

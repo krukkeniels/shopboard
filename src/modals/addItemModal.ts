@@ -7,22 +7,16 @@ import { ItemData } from '../types';
  */
 export class AddItemModal extends Modal {
 	private itemParser: ItemParser;
-	private selectedItem: ItemData | null = null;
-	private quantity: number = 1;
-	private priceOverride: number | null = null;
 	private searchQuery: string = '';
-	private onSubmit: (itemRef: string, quantity: number, priceOverride: number | null) => void;
+	private onSubmit: (itemRef: string, quantity: number) => void;
 
 	private searchInputEl: HTMLInputElement | null = null;
 	private tableBodyEl: HTMLElement | null = null;
-	private quantityInputEl: HTMLInputElement | null = null;
-	private priceInputEl: HTMLInputElement | null = null;
-	private selectedItemEl: HTMLElement | null = null;
 
 	constructor(
 		app: App,
 		itemParser: ItemParser,
-		onSubmit: (itemRef: string, quantity: number, priceOverride: number | null) => void
+		onSubmit: (itemRef: string, quantity: number) => void
 	) {
 		super(app);
 		this.itemParser = itemParser;
@@ -35,19 +29,13 @@ export class AddItemModal extends Modal {
 		contentEl.addClass('shopboard-add-item-modal');
 
 		// Modal title
-		contentEl.createEl('h2', { text: 'Add Item to Shop' });
+		contentEl.createEl('h2', { text: 'Add Items to Shop' });
 
 		// Search section
 		this.createSearchSection(contentEl);
 
 		// Item table section
 		this.createItemTable(contentEl);
-
-		// Selected item display
-		this.createSelectedItemSection(contentEl);
-
-		// Form inputs
-		this.createFormInputs(contentEl);
 
 		// Buttons
 		this.createButtons(contentEl);
@@ -67,21 +55,31 @@ export class AddItemModal extends Modal {
 	private createSearchSection(container: HTMLElement) {
 		const searchContainer = container.createDiv('search-container');
 
-		const searchLabel = searchContainer.createEl('label', {
-			text: 'Search Items',
-			cls: 'search-label'
-		});
-
 		this.searchInputEl = searchContainer.createEl('input', {
 			type: 'text',
 			cls: 'search-input',
-			placeholder: 'Type to search by name, rarity, or description...'
+			placeholder: 'Search items...'
 		});
 
 		this.searchInputEl.addEventListener('input', () => {
 			this.searchQuery = this.searchInputEl?.value.toLowerCase() || '';
 			this.renderItems();
 		});
+
+		// Clear search button
+		if (this.searchQuery) {
+			const clearButton = searchContainer.createEl('button', {
+				text: '×',
+				cls: 'search-clear-button'
+			});
+			clearButton.addEventListener('click', () => {
+				this.searchQuery = '';
+				if (this.searchInputEl) {
+					this.searchInputEl.value = '';
+				}
+				this.renderItems();
+			});
+		}
 
 		// Auto-focus search input
 		this.searchInputEl.focus();
@@ -101,65 +99,10 @@ export class AddItemModal extends Modal {
 		headerRow.createEl('th', { text: 'Item Name' });
 		headerRow.createEl('th', { text: 'Rarity' });
 		headerRow.createEl('th', { text: 'Base Price' });
+		headerRow.createEl('th', { text: 'Quick Add' });
 
 		// Table body
 		this.tableBodyEl = table.createEl('tbody');
-	}
-
-	/**
-	 * Create selected item display section
-	 */
-	private createSelectedItemSection(container: HTMLElement) {
-		this.selectedItemEl = container.createDiv('selected-item-container');
-		this.updateSelectedItemDisplay();
-	}
-
-	/**
-	 * Create form input fields
-	 */
-	private createFormInputs(container: HTMLElement) {
-		const formContainer = container.createDiv('form-container');
-
-		// Quantity input
-		const quantityGroup = formContainer.createDiv('form-group');
-		quantityGroup.createEl('label', { text: 'Quantity' });
-		this.quantityInputEl = quantityGroup.createEl('input', {
-			type: 'number',
-			cls: 'quantity-input',
-			value: '1',
-			attr: { min: '1' }
-		});
-
-		this.quantityInputEl.addEventListener('input', () => {
-			const value = parseInt(this.quantityInputEl?.value || '1');
-			this.quantity = value > 0 ? value : 1;
-		});
-
-		// Price override input
-		const priceGroup = formContainer.createDiv('form-group');
-		priceGroup.createEl('label', { text: 'Price Override (optional)' });
-		const priceInputWrapper = priceGroup.createDiv('price-input-wrapper');
-		this.priceInputEl = priceInputWrapper.createEl('input', {
-			type: 'number',
-			cls: 'price-input',
-			placeholder: 'Leave empty for calculated price',
-			attr: { min: '0' }
-		});
-
-		priceInputWrapper.createSpan({
-			text: 'cp',
-			cls: 'price-suffix'
-		});
-
-		this.priceInputEl.addEventListener('input', () => {
-			const value = this.priceInputEl?.value;
-			if (value && value.trim() !== '') {
-				const numValue = parseInt(value);
-				this.priceOverride = numValue >= 0 ? numValue : null;
-			} else {
-				this.priceOverride = null;
-			}
-		});
 	}
 
 	/**
@@ -168,22 +111,13 @@ export class AddItemModal extends Modal {
 	private createButtons(container: HTMLElement) {
 		const buttonContainer = container.createDiv('modal-button-container');
 
-		// Add button
-		const addButton = buttonContainer.createEl('button', {
-			text: 'Add to Shop',
+		// Close button
+		const closeButton = buttonContainer.createEl('button', {
+			text: 'Close',
 			cls: 'mod-cta'
 		});
 
-		addButton.addEventListener('click', async () => {
-			await this.handleAdd();
-		});
-
-		// Cancel button
-		const cancelButton = buttonContainer.createEl('button', {
-			text: 'Cancel'
-		});
-
-		cancelButton.addEventListener('click', () => {
+		closeButton.addEventListener('click', () => {
 			this.close();
 		});
 	}
@@ -219,7 +153,7 @@ export class AddItemModal extends Modal {
 			const emptyRow = this.tableBodyEl.createEl('tr', { cls: 'empty-row' });
 			const emptyCell = emptyRow.createEl('td', {
 				text: this.searchQuery ? 'No items found matching your search' : 'No items available',
-				attr: { colspan: '3' }
+				attr: { colspan: '4' }
 			});
 			return;
 		}
@@ -229,11 +163,6 @@ export class AddItemModal extends Modal {
 
 		for (const item of itemsToShow) {
 			const row = this.tableBodyEl.createEl('tr', { cls: 'item-row' });
-
-			// Add selected class if this is the selected item
-			if (this.selectedItem && this.selectedItem.path === item.path) {
-				row.addClass('selected');
-			}
 
 			// Item name
 			row.createEl('td', { text: item.name, cls: 'item-name-cell' });
@@ -253,9 +182,34 @@ export class AddItemModal extends Modal {
 			const priceText = item.basePrice ? `${item.basePrice} cp` : '-';
 			row.createEl('td', { text: priceText, cls: 'price-cell' });
 
-			// Click handler
-			row.addEventListener('click', () => {
-				this.selectItem(item);
+			// Quick add buttons
+			const actionsCell = row.createEl('td', { cls: 'actions-cell' });
+
+			// +1 button
+			const add1Button = actionsCell.createEl('button', {
+				text: '+1',
+				cls: 'btn-small btn-add'
+			});
+			add1Button.addEventListener('click', () => {
+				this.handleQuickAdd(item, 1);
+			});
+
+			// +5 button
+			const add5Button = actionsCell.createEl('button', {
+				text: '+5',
+				cls: 'btn-small btn-add'
+			});
+			add5Button.addEventListener('click', () => {
+				this.handleQuickAdd(item, 5);
+			});
+
+			// +20 button
+			const add20Button = actionsCell.createEl('button', {
+				text: '+20',
+				cls: 'btn-small btn-add'
+			});
+			add20Button.addEventListener('click', () => {
+				this.handleQuickAdd(item, 20);
 			});
 		}
 
@@ -264,88 +218,24 @@ export class AddItemModal extends Modal {
 			const noteRow = this.tableBodyEl.createEl('tr', { cls: 'note-row' });
 			noteRow.createEl('td', {
 				text: `Showing first 100 of ${filteredItems.length} items. Use search to narrow results.`,
-				attr: { colspan: '3' }
+				attr: { colspan: '4' }
 			});
 		}
 	}
 
 	/**
-	 * Select an item
+	 * Handle quick add button click
 	 */
-	private selectItem(item: ItemData) {
-		this.selectedItem = item;
-		this.renderItems(); // Re-render to update selection
-		this.updateSelectedItemDisplay();
-	}
-
-	/**
-	 * Update selected item display
-	 */
-	private updateSelectedItemDisplay() {
-		if (!this.selectedItemEl) return;
-
-		this.selectedItemEl.empty();
-
-		if (!this.selectedItem) {
-			this.selectedItemEl.createEl('p', {
-				text: 'Select an item from the table above',
-				cls: 'no-selection'
-			});
-			return;
-		}
-
-		this.selectedItemEl.createEl('h3', { text: 'Selected Item' });
-
-		const itemCard = this.selectedItemEl.createDiv('selected-item-card');
-
-		itemCard.createEl('div', {
-			text: this.selectedItem.name,
-			cls: 'selected-item-name'
-		});
-
-		if (this.selectedItem.rarity) {
-			const rarityBadge = itemCard.createSpan({
-				text: this.selectedItem.rarity,
-				cls: `rarity-badge rarity-${this.selectedItem.rarity.toLowerCase().replace(/\s+/g, '-')}`
-			});
-		}
-
-		if (this.selectedItem.description) {
-			itemCard.createEl('p', {
-				text: this.selectedItem.description,
-				cls: 'selected-item-description'
-			});
-		}
-
-		itemCard.createEl('div', {
-			text: `Base Price: ${this.selectedItem.basePrice} cp`,
-			cls: 'selected-item-price'
-		});
-	}
-
-	/**
-	 * Handle adding the item
-	 */
-	private async handleAdd() {
-		// Validate selection
-		if (!this.selectedItem) {
-			new Notice('Please select an item from the table');
-			return;
-		}
-
-		// Validate quantity
-		if (this.quantity < 1) {
-			new Notice('Quantity must be at least 1');
-			return;
-		}
-
+	private handleQuickAdd(item: ItemData, quantity: number) {
 		// Create wikilink reference
-		const itemRef = `[[${this.selectedItem.name}]]`;
+		const itemRef = `[[${item.name}]]`;
 
 		// Call the onSubmit callback
-		this.onSubmit(itemRef, this.quantity, this.priceOverride);
+		this.onSubmit(itemRef, quantity);
 
-		// Close the modal
-		this.close();
+		// Show success notice
+		new Notice(`Added ${quantity}x ${item.name} to shop`);
+
+		// Keep modal open for adding more items
 	}
 }

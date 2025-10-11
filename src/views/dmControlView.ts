@@ -19,6 +19,7 @@ export class DMControlView extends ItemView {
 	private currentShopFile: TFile | null = null;
 	private selectedItemPath: string | null = null;
 	private currentColumns: number = 4;
+	private currentRows: number | undefined = undefined;
 	private currentShowDescriptions: boolean = true;
 	private modifyDebounceTimer: number | null = null;
 	private isUpdating: boolean = false;
@@ -111,11 +112,39 @@ export class DMControlView extends ItemView {
 			})
 		);
 
+		// Listen for row change events from display view
+		this.registerEvent(
+			this.app.workspace.on('shopboard:rows-changed', (rows: number | undefined) => {
+				this.currentRows = rows;
+				this.render();
+			})
+		);
+
 		// Listen for show descriptions toggle events from display view
 		this.registerEvent(
 			this.app.workspace.on('shopboard:show-descriptions-changed', (show: boolean) => {
 				this.currentShowDescriptions = show;
 				this.render();
+			})
+		);
+
+		// Listen for item modification events
+		this.registerEvent(
+			this.app.workspace.on('shopboard:item-modified', async (itemPath: string) => {
+				// Skip if we're currently updating to prevent race conditions
+				if (this.isUpdating) {
+					return;
+				}
+
+				// Check if the modified item is in our current shop's inventory
+				const isInInventory = this.currentShop?.inventory.some(
+					invItem => invItem.itemData?.path === itemPath
+				);
+
+				if (isInInventory && this.currentShopFile) {
+					// Re-sync to update display with new item data
+					await this.syncWithShop(this.currentShopFile);
+				}
 			})
 		);
 	}
@@ -156,6 +185,11 @@ export class DMControlView extends ItemView {
 						this.currentColumns = (view as any).getColumns();
 					}
 
+					// Sync rows from display view
+					if ('getRows' in view) {
+						this.currentRows = (view as any).getRows();
+					}
+
 					// Sync showDescriptions from shop data
 					this.currentShowDescriptions = shopData.showDescriptions ?? true;
 
@@ -176,9 +210,33 @@ export class DMControlView extends ItemView {
 
 		if (shopData) {
 			this.currentShop = shopData;
+
+			// Sync display settings from parsed shop data
+			this.currentColumns = shopData.columns || 4;
+			this.currentRows = shopData.rows;
+			this.currentShowDescriptions = shopData.showDescriptions ?? true;
+
 			this.render();
 		} else {
 			new Notice('Failed to parse shop note');
+		}
+	}
+
+	/**
+	 * Get category for an item based on its type
+	 * - Equipment uses equipment_type field
+	 * - Magic items use item_type field
+	 */
+	private getItemCategory(itemData: any): string {
+		if (!itemData?.metadata) return 'uncategorized';
+
+		const itemType = itemData.metadata.type;
+		if (itemType === 'equipment') {
+			const rawType = itemData.metadata.equipment_type || 'uncategorized';
+			return rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+		} else {
+			const rawType = itemData.metadata.item_type || 'uncategorized';
+			return rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
 		}
 	}
 
@@ -242,6 +300,9 @@ export class DMControlView extends ItemView {
 
 		// Column controls
 		this.renderColumnControls(headerEl);
+
+		// Row controls
+		this.renderRowControls(headerEl);
 
 		// Description toggle
 		this.renderDescriptionToggle(headerEl);
@@ -399,8 +460,111 @@ export class DMControlView extends ItemView {
 			// Re-render to update button states
 			this.render();
 
-			// Wait a bit for async operations to complete
-			await new Promise(resolve => setTimeout(resolve, 100));
+			// Wait for display view to save to frontmatter
+			await new Promise(resolve => setTimeout(resolve, 200));
+
+			// Re-sync to load saved values from frontmatter
+			await this.syncWithShop(this.currentShopFile!);
+		} finally {
+			this.isUpdating = false;
+		}
+	}
+
+	/**
+	 * Render row controls for player display
+	 */
+	private renderRowControls(container: HTMLElement): void {
+		const rowContainer = container.createDiv({ cls: 'row-controls' });
+
+		rowContainer.createEl('label', {
+			text: 'Display Rows:',
+			cls: 'row-label'
+		});
+
+		const controlsRow = rowContainer.createDiv({ cls: 'row-controls-row' });
+
+		// Decrease button
+		const decreaseButton = controlsRow.createEl('button', {
+			text: '−',
+			cls: 'row-adjust-button'
+		});
+
+		// Disable if at minimum or if rows is undefined
+		if (this.currentRows !== undefined && this.currentRows <= 1) {
+			decreaseButton.disabled = true;
+		}
+
+		decreaseButton.addEventListener('click', async () => {
+			const newRows = this.currentRows !== undefined ? this.currentRows - 1 : 4;
+			await this.handleRowsChange(newRows);
+		});
+
+		// Row count display
+		const rowText = this.currentRows !== undefined
+			? `${this.currentRows} rows`
+			: 'Auto';
+
+		controlsRow.createDiv({
+			cls: 'row-display',
+			text: rowText
+		});
+
+		// Increase button
+		const increaseButton = controlsRow.createEl('button', {
+			text: '+',
+			cls: 'row-adjust-button'
+		});
+
+		// Disable if at maximum
+		if (this.currentRows !== undefined && this.currentRows >= 30) {
+			increaseButton.disabled = true;
+		}
+
+		increaseButton.addEventListener('click', async () => {
+			const newRows = this.currentRows !== undefined ? this.currentRows + 1 : 5;
+			await this.handleRowsChange(newRows);
+		});
+
+		// Reset to auto button (only show if rows is manually set)
+		if (this.currentRows !== undefined) {
+			const resetButton = controlsRow.createEl('button', {
+				text: 'Auto',
+				cls: 'row-reset-button'
+			});
+
+			resetButton.addEventListener('click', async () => {
+				await this.handleRowsChange(undefined);
+			});
+		}
+	}
+
+	/**
+	 * Handle row count change
+	 */
+	private async handleRowsChange(rows: number | undefined): Promise<void> {
+		// Validate range if defined
+		if (rows !== undefined) {
+			rows = Math.max(1, Math.min(30, rows));
+		}
+
+		// Set updating flag to prevent race conditions
+		this.isUpdating = true;
+
+		try {
+			// Update local tracking
+			this.currentRows = rows;
+
+			// Trigger event for display view
+			this.app.workspace.trigger('shopboard:set-rows', rows);
+
+			// Re-render to update button states
+			this.render();
+
+			// Wait for display view to save to frontmatter
+			await new Promise(resolve => setTimeout(resolve, 200));
+
+			// Re-sync to load saved values from frontmatter
+			await this.syncWithShop(this.currentShopFile!);
 		} finally {
 			this.isUpdating = false;
 		}
@@ -593,8 +757,8 @@ export class DMControlView extends ItemView {
 		const modal = new AddItemModal(
 			this.app,
 			this.plugin.itemParser,
-			async (itemRef: string, quantity: number, priceOverride: number | null) => {
-				await this.handleAddItem(itemRef, quantity, priceOverride);
+			async (itemRef: string, quantity: number) => {
+				await this.handleAddItem(itemRef, quantity, null);
 			}
 		);
 		modal.open();
@@ -633,14 +797,34 @@ export class DMControlView extends ItemView {
 		this.isUpdating = true;
 
 		try {
-			await this.plugin.shopModifier.addInventoryItem(
-				this.currentShopFile!,
-				itemRef,
-				quantity,
-				priceOverride
+			// Check if item already exists in inventory
+			const existingItemIndex = this.currentShop!.inventory.findIndex(
+				invItem => invItem.itemRef === itemRef
 			);
 
-			new Notice(`Added ${itemRef} to shop (qty: ${quantity})`);
+			if (existingItemIndex !== -1) {
+				// Item exists - increment quantity
+				const existingItem = this.currentShop!.inventory[existingItemIndex];
+				const newQuantity = existingItem.quantity + quantity;
+
+				await this.plugin.shopModifier.updateItemQuantity(
+					this.currentShopFile!,
+					existingItemIndex,
+					newQuantity
+				);
+
+				new Notice(`Added ${quantity} more to ${itemRef} (now: ${newQuantity})`);
+			} else {
+				// Item doesn't exist - add new item
+				await this.plugin.shopModifier.addInventoryItem(
+					this.currentShopFile!,
+					itemRef,
+					quantity,
+					priceOverride
+				);
+
+				new Notice(`Added ${itemRef} to shop (qty: ${quantity})`);
+			}
 
 			// Re-sync to update display
 			await this.syncWithShop(this.currentShopFile!);
@@ -917,8 +1101,7 @@ export class DMControlView extends ItemView {
 		const itemsByCategory = new Map<string, typeof filteredInventory>();
 
 		for (const item of filteredInventory) {
-			const rawType = item.invItem.itemData?.metadata?.item_type || 'uncategorized';
-			const category = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+			const category = this.getItemCategory(item.invItem.itemData);
 
 			if (!itemsByCategory.has(category)) {
 				itemsByCategory.set(category, []);

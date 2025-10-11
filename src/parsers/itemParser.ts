@@ -90,7 +90,8 @@ export class ItemParser {
 			const fm = metadata.frontmatter;
 
 			// Validate required fields
-			if (fm.type !== 'item') {
+			// Accept both 'item' and 'equipment' types
+			if (fm.type !== 'item' && fm.type !== 'equipment') {
 				return null;
 			}
 

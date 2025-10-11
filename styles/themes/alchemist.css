@@ -9,16 +9,51 @@
 	--theme-alt: #8b5cf6;
 	--theme-background: rgba(5, 150, 105, 0.05);
 	--theme-border: rgba(5, 150, 105, 0.3);
+	position: relative;
+}
+
+/* Background image with overlay - image set dynamically via JavaScript */
+.shop-type-alchemist::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-image: var(--shop-background-image);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	opacity: 0.45;
+	z-index: 0;
+}
+
+/* Mystical overlay with potion glow */
+.shop-type-alchemist::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: linear-gradient(135deg, rgba(15, 50, 40, 0.88) 0%, rgba(30, 80, 60, 0.85) 100%);
+	z-index: 0;
+}
+
+/* Ensure content is above background */
+.shop-type-alchemist > * {
+	position: relative;
+	z-index: 1;
 }
 
 /* Header styling */
 .shop-type-alchemist .shop-header {
-	background: linear-gradient(135deg, rgba(5, 150, 105, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+	background: linear-gradient(135deg, rgba(5, 150, 105, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%);
 	border-bottom: 3px double var(--theme-border);
+	backdrop-filter: blur(8px);
 }
 
 .shop-type-alchemist .shop-header::before {
-	content: '⚗';
 	position: absolute;
 	top: 1rem;
 	left: 1rem;
@@ -28,7 +63,6 @@
 }
 
 .shop-type-alchemist .shop-header::after {
-	content: '🧪';
 	position: absolute;
 	top: 1rem;
 	right: 1rem;
@@ -39,6 +73,7 @@
 .shop-type-alchemist .shop-name {
 	color: var(--theme-primary);
 	font-style: italic;
+	font-family: 'Brush Script MT', cursive;
 }
 
 .shop-type-alchemist .shop-type-badge {
@@ -48,17 +83,19 @@
 
 /* Inventory items */
 .shop-type-alchemist .inventory-item {
-	background: linear-gradient(135deg, var(--background-secondary) 0%, rgba(5, 150, 105, 0.03) 100%);
+	background: linear-gradient(135deg, rgba(20, 60, 50, 0.88) 0%, rgba(30, 80, 60, 0.85) 100%);
 	border: 2px solid var(--theme-border);
-	box-shadow: 0 2px 8px rgba(5, 150, 105, 0.1);
+	box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3),
+				0 0 20px rgba(16, 185, 129, 0.2);
 	position: relative;
 	overflow: hidden;
+	backdrop-filter: blur(4px);
 }
 
 .shop-type-alchemist .inventory-item:hover {
 	border-color: var(--theme-secondary);
-	box-shadow: 0 8px 24px rgba(5, 150, 105, 0.25),
-				0 0 20px rgba(139, 92, 246, 0.1);
+	box-shadow: 0 8px 24px rgba(5, 150, 105, 0.5),
+				0 0 30px rgba(139, 92, 246, 0.3);
 }
 
 /* Bubble effect */
@@ -82,14 +119,22 @@
 	opacity: 1;
 }
 
-.shop-type-alchemist .item-name {
-	color: var(--theme-primary);
+.shop-type-alchemist .item-name,
+.shop-type-alchemist .grid-item-name {
+	color: #d1fae5;
 	font-weight: 600;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 20px rgba(16, 185, 129, 0.6);
 }
 
-.shop-type-alchemist .item-price {
-	color: var(--theme-secondary);
-	text-shadow: 0 0 10px rgba(5, 150, 105, 0.2);
+.shop-type-alchemist .item-price,
+.shop-type-alchemist .grid-item-price {
+	color: #fbbf24;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(251, 191, 36, 0.6);
+}
+
+.shop-type-alchemist .grid-item-description {
+	color: #a7f3d0;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 /* Potion glow effect */
