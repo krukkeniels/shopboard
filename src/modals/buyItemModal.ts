@@ -4,16 +4,20 @@ import { ItemData, ShopboardSettings } from '../types';
 import { PriceCalculator } from '../utils/priceCalculator';
 
 /**
- * Modal for searching and adding items to a shop
+ * Modal for buying items from players and adding them to shop
+ * Shows buy prices (what shop pays player) but adds items at normal shop pricing
  */
-export class AddItemModal extends Modal {
+export class BuyItemModal extends Modal {
 	private itemParser: ItemParser;
 	private settings: ShopboardSettings;
 	private priceCalculator: PriceCalculator;
+	private shopPriceModifier: number;
+	private buyModifier: number;
 	private searchQuery: string = '';
 	private onSubmit: (itemRef: string, quantity: number) => void;
 
 	private searchInputEl: HTMLInputElement | null = null;
+	private buyModifierInputEl: HTMLInputElement | null = null;
 	private tableBodyEl: HTMLElement | null = null;
 
 	constructor(
@@ -21,27 +25,40 @@ export class AddItemModal extends Modal {
 		itemParser: ItemParser,
 		settings: ShopboardSettings,
 		priceCalculator: PriceCalculator,
+		shopPriceModifier: number,
 		onSubmit: (itemRef: string, quantity: number) => void
 	) {
 		super(app);
 		this.itemParser = itemParser;
 		this.settings = settings;
 		this.priceCalculator = priceCalculator;
+		this.shopPriceModifier = shopPriceModifier;
+		// Default buy modifier: shop modifier - 10
+		this.buyModifier = shopPriceModifier - 10;
 		this.onSubmit = onSubmit;
 	}
 
 	onOpen() {
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.addClass('shopboard-add-item-modal');
+		contentEl.addClass('shopboard-buy-item-modal');
 
 		// Set inline styles on modalEl (the actual modal container, not just content)
-		this.modalEl.style.maxWidth = '900px';
-		this.modalEl.style.minWidth = '700px';
+		this.modalEl.style.maxWidth = '1000px';
+		this.modalEl.style.minWidth = '800px';
 		this.modalEl.style.width = '100%';
 
 		// Modal title
-		contentEl.createEl('h2', { text: 'Add Items to Shop' });
+		contentEl.createEl('h2', { text: 'Buy Items from Players' });
+
+		// Description
+		contentEl.createEl('p', {
+			text: 'Buy prices shown are what you pay the player. Items will be added to shop at normal pricing.',
+			cls: 'modal-description'
+		});
+
+		// Buy modifier section
+		this.createBuyModifierSection(contentEl);
 
 		// Search section
 		this.createSearchSection(contentEl);
@@ -59,6 +76,41 @@ export class AddItemModal extends Modal {
 	onClose() {
 		const { contentEl } = this;
 		contentEl.empty();
+	}
+
+	/**
+	 * Create buy modifier input section
+	 */
+	private createBuyModifierSection(container: HTMLElement) {
+		const modifierContainer = container.createDiv('buy-modifier-container');
+
+		modifierContainer.createEl('label', {
+			text: 'Buy Price Modifier (%):',
+			cls: 'buy-modifier-label'
+		});
+
+		this.buyModifierInputEl = modifierContainer.createEl('input', {
+			type: 'number',
+			cls: 'buy-modifier-input',
+			value: this.buyModifier.toString(),
+			attr: {
+				min: '-100',
+				max: '1000',
+				step: '5'
+			}
+		});
+
+		this.buyModifierInputEl.addEventListener('input', () => {
+			const value = parseInt(this.buyModifierInputEl?.value || '0');
+			if (!isNaN(value)) {
+				this.buyModifier = value;
+				this.renderItems(); // Re-render to update prices
+			}
+		});
+
+		// Show explanation
+		const explanation = modifierContainer.createDiv({ cls: 'buy-modifier-explanation' });
+		explanation.textContent = `Shop sells at ${this.shopPriceModifier >= 0 ? '+' : ''}${this.shopPriceModifier}%. Default buy modifier is ${this.buyModifier >= 0 ? '+' : ''}${this.buyModifier}%.`;
 	}
 
 	/**
@@ -111,7 +163,8 @@ export class AddItemModal extends Modal {
 		headerRow.createEl('th', { text: 'Item Name' });
 		headerRow.createEl('th', { text: 'Rarity' });
 		headerRow.createEl('th', { text: 'Base Price' });
-		headerRow.createEl('th', { text: 'Quick Add' });
+		headerRow.createEl('th', { text: 'Buy Price' });
+		headerRow.createEl('th', { text: 'Quick Buy' });
 
 		// Table body
 		this.tableBodyEl = table.createEl('tbody');
@@ -165,7 +218,7 @@ export class AddItemModal extends Modal {
 			const emptyRow = this.tableBodyEl.createEl('tr', { cls: 'empty-row' });
 			const emptyCell = emptyRow.createEl('td', {
 				text: this.searchQuery ? 'No items found matching your search' : 'No items available',
-				attr: { colspan: '4' }
+				attr: { colspan: '5' }
 			});
 			return;
 		}
@@ -191,12 +244,12 @@ export class AddItemModal extends Modal {
 			}
 
 			// Base price with converted display value
-			let priceText = '-';
+			let basePriceText = '-';
 			if (item.basePrice) {
 				const baseCurrency = this.settings.currency.baseCurrency;
 				const displayCurrency = this.settings.currency.displayCurrency;
 
-				priceText = `${item.basePrice} ${baseCurrency}`;
+				basePriceText = `${item.basePrice} ${baseCurrency}`;
 
 				// Show converted display currency if different from base
 				if (baseCurrency !== displayCurrency) {
@@ -211,39 +264,50 @@ export class AddItemModal extends Modal {
 						? displayPrice.toString()
 						: displayPrice.toFixed(2);
 
-					priceText += ` (${formattedDisplay} ${displayCurrency})`;
+					basePriceText += ` (${formattedDisplay} ${displayCurrency})`;
 				}
 			}
-			row.createEl('td', { text: priceText, cls: 'price-cell' });
+			row.createEl('td', { text: basePriceText, cls: 'price-cell' });
 
-			// Quick add buttons
+			// Buy price (what shop pays player)
+			let buyPriceText = '-';
+			if (item.basePrice) {
+				const buyPriceInBase = this.priceCalculator.calculatePrice(
+					item.basePrice,
+					this.buyModifier
+				);
+				buyPriceText = this.priceCalculator.formatCurrency(buyPriceInBase);
+			}
+			row.createEl('td', { text: buyPriceText, cls: 'buy-price-cell' });
+
+			// Quick buy buttons
 			const actionsCell = row.createEl('td', { cls: 'actions-cell' });
 
 			// +1 button
-			const add1Button = actionsCell.createEl('button', {
+			const buy1Button = actionsCell.createEl('button', {
 				text: '+1',
 				cls: 'btn-small btn-add'
 			});
-			add1Button.addEventListener('click', () => {
-				this.handleQuickAdd(item, 1);
+			buy1Button.addEventListener('click', () => {
+				this.handleQuickBuy(item, 1);
 			});
 
 			// +5 button
-			const add5Button = actionsCell.createEl('button', {
+			const buy5Button = actionsCell.createEl('button', {
 				text: '+5',
 				cls: 'btn-small btn-add'
 			});
-			add5Button.addEventListener('click', () => {
-				this.handleQuickAdd(item, 5);
+			buy5Button.addEventListener('click', () => {
+				this.handleQuickBuy(item, 5);
 			});
 
 			// +20 button
-			const add20Button = actionsCell.createEl('button', {
+			const buy20Button = actionsCell.createEl('button', {
 				text: '+20',
 				cls: 'btn-small btn-add'
 			});
-			add20Button.addEventListener('click', () => {
-				this.handleQuickAdd(item, 20);
+			buy20Button.addEventListener('click', () => {
+				this.handleQuickBuy(item, 20);
 			});
 		}
 
@@ -252,24 +316,32 @@ export class AddItemModal extends Modal {
 			const noteRow = this.tableBodyEl.createEl('tr', { cls: 'note-row' });
 			noteRow.createEl('td', {
 				text: `Showing first 100 of ${filteredItems.length} items. Use search to narrow results.`,
-				attr: { colspan: '4' }
+				attr: { colspan: '5' }
 			});
 		}
 	}
 
 	/**
-	 * Handle quick add button click
+	 * Handle quick buy button click
 	 */
-	private async handleQuickAdd(item: ItemData, quantity: number) {
+	private async handleQuickBuy(item: ItemData, quantity: number) {
 		// Create wikilink reference
 		const itemRef = `[[${item.name}]]`;
+
+		// Calculate buy price for display in notice
+		const buyPriceInBase = this.priceCalculator.calculatePrice(
+			item.basePrice,
+			this.buyModifier
+		);
+		const totalBuyPrice = buyPriceInBase * quantity;
+		const buyPriceText = this.priceCalculator.formatCurrency(totalBuyPrice);
 
 		// Await the onSubmit callback to ensure item is added before showing notice
 		await this.onSubmit(itemRef, quantity);
 
-		// Show success notice AFTER item is added
-		new Notice(`Added ${quantity}x ${item.name} to shop`);
+		// Show success notice with buy price AFTER item is added
+		new Notice(`Bought ${quantity}x ${item.name} for ${buyPriceText}`);
 
-		// Keep modal open for adding more items
+		// Keep modal open for buying more items
 	}
 }

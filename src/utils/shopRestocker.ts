@@ -220,9 +220,16 @@ export class ShopRestocker {
 		// Get rarity distribution from existing inventory
 		const { minRarity, maxRarity } = this.inferRarityRange(shopData.inventory, params);
 
+		// Filter by shop type first (applies variety logic)
+		const shopTypeFilteredItems = this.shopGenerator.filterItemsByShopType(
+			allItems,
+			shopData.shopType,
+			true // Include variety items
+		);
+
 		// Filter by rarity
 		const filteredItems = this.shopGenerator.filterItemsByRarity(
-			allItems,
+			shopTypeFilteredItems,
 			minRarity,
 			maxRarity
 		);

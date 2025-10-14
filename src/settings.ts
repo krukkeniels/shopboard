@@ -23,19 +23,31 @@ export const DEFAULT_SETTINGS: ShopboardSettings = {
 	shopTypes: {
 		magic_shop: {
 			label: 'Magic Shop',
-			theme: 'mystical'
+			theme: 'mystical',
+			allowedItemTypes: ['magic', 'scroll', 'wand', 'ring', 'artifact', 'potion'],
+			allowedEquipmentTypes: ['magic'],
+			allowVariety: true
 		},
 		blacksmith: {
 			label: 'Blacksmith',
-			theme: 'forge'
+			theme: 'forge',
+			allowedItemTypes: ['weapon', 'armor', 'shield'],
+			allowedEquipmentTypes: ['weapon', 'armor', 'shield', 'ammunition'],
+			allowVariety: true
 		},
 		general_store: {
 			label: 'General Store',
-			theme: 'rustic'
+			theme: 'rustic',
+			allowedItemTypes: ['*'],
+			allowedEquipmentTypes: ['*'],
+			allowVariety: true
 		},
 		alchemist: {
 			label: 'Alchemist',
-			theme: 'potion'
+			theme: 'potion',
+			allowedItemTypes: ['potion', 'consumable', 'ingredient', 'alchemical'],
+			allowedEquipmentTypes: ['*'],
+			allowVariety: true
 		}
 	},
 	themeOverride: true,
@@ -43,6 +55,8 @@ export const DEFAULT_SETTINGS: ShopboardSettings = {
 	openaiApiKey: '',
 	imageStyle: 'digital-art',
 	attachmentFolder: '_attachments',
+	defaultColumns: 4,
+	defaultRows: 5,
 	version: '1.0.0'
 };
 
@@ -320,27 +334,116 @@ export class ShopboardSettingTab extends PluginSettingTab {
 					this.plugin.imageGenerator.updateAttachmentFolder(folderName);
 				}));
 
-		// Shop Types Section
-		containerEl.createEl('h3', { text: 'Shop Types' });
+		// Shop Display Defaults Section
+		containerEl.createEl('h3', { text: 'Shop Display Defaults' });
 		containerEl.createEl('p', {
-			text: 'Configure shop types and their themes. Changes require plugin reload.',
+			text: 'Default grid layout for shops that haven\'t specified columns/rows.',
+			cls: 'setting-item-description'
+		});
+
+		// Default Columns Setting
+		new Setting(containerEl)
+			.setName('Default Columns')
+			.setDesc('Default number of columns for shop display grid (2-8)')
+			.addText(text => text
+				.setPlaceholder('4')
+				.setValue(String(this.plugin.settings.defaultColumns))
+				.onChange(async (value) => {
+					const columns = parseInt(value);
+
+					// Validation: Ensure column count is between 2 and 8
+					if (isNaN(columns) || columns < 2 || columns > 8) {
+						this.plugin.settings.defaultColumns = 4;
+						await this.plugin.saveSettings();
+						text.setValue('4');
+						return;
+					}
+
+					this.plugin.settings.defaultColumns = columns;
+					await this.plugin.saveSettings();
+				}));
+
+		// Default Rows Setting
+		new Setting(containerEl)
+			.setName('Default Rows')
+			.setDesc('Default number of rows for shop display grid (1-30)')
+			.addText(text => text
+				.setPlaceholder('5')
+				.setValue(String(this.plugin.settings.defaultRows))
+				.onChange(async (value) => {
+					const rows = parseInt(value);
+
+					// Validation: Ensure row count is between 1 and 30
+					if (isNaN(rows) || rows < 1 || rows > 30) {
+						this.plugin.settings.defaultRows = 5;
+						await this.plugin.saveSettings();
+						text.setValue('5');
+						return;
+					}
+
+					this.plugin.settings.defaultRows = rows;
+					await this.plugin.saveSettings();
+				}));
+
+		// Shop Types Section
+		containerEl.createEl('h3', { text: 'Shop Types & Item Filtering' });
+		containerEl.createEl('p', {
+			text: 'Configure which item types can appear in each shop type. Use "*" for all types, or specify comma-separated types.',
 			cls: 'setting-item-description'
 		});
 
 		// Display existing shop types
 		for (const [key, shopType] of Object.entries(this.plugin.settings.shopTypes)) {
-			new Setting(containerEl)
+			// Format item types for display
+			const itemTypesStr = shopType.allowedItemTypes.join(', ');
+			const equipTypesStr = shopType.allowedEquipmentTypes.join(', ');
+			const varietyStr = shopType.allowVariety ? 'Yes' : 'No';
+
+			const setting = new Setting(containerEl)
 				.setName(shopType.label)
-				.setDesc(`Type: ${key} | Theme: ${shopType.theme}`)
-				.addExtraButton(button => button
-					.setIcon('trash')
-					.setTooltip('Remove shop type')
-					.onClick(async () => {
-						delete this.plugin.settings.shopTypes[key];
-						await this.plugin.saveSettings();
-						this.display(); // Refresh display
-					}));
+				.setDesc(
+					`Type: ${key} | Theme: ${shopType.theme}\n` +
+					`Item types: ${itemTypesStr}\n` +
+					`Equipment types: ${equipTypesStr}\n` +
+					`Allow variety: ${varietyStr}`
+				);
+
+			// Edit button
+			setting.addButton(button => button
+				.setButtonText('Edit')
+				.onClick(() => {
+					this.openShopTypeEditModal(key, shopType);
+				}));
+
+			// Delete button
+			setting.addExtraButton(button => button
+				.setIcon('trash')
+				.setTooltip('Remove shop type')
+				.onClick(async () => {
+					delete this.plugin.settings.shopTypes[key];
+					await this.plugin.saveSettings();
+					this.display(); // Refresh display
+				}));
 		}
+	}
+
+	/**
+	 * Open modal to edit a shop type configuration
+	 */
+	private openShopTypeEditModal(key: string, shopType: any): void {
+		const modal = new ShopTypeEditModal(
+			this.app,
+			key,
+			shopType,
+			async (updatedConfig: any) => {
+				// Update shop type configuration
+				this.plugin.settings.shopTypes[key] = updatedConfig;
+				await this.plugin.saveSettings();
+				this.display(); // Refresh display
+				new Notice(`Updated shop type: ${updatedConfig.label}`);
+			}
+		);
+		modal.open();
 	}
 
 	/**
@@ -483,6 +586,174 @@ class DenominationEditModal extends Modal {
 			}
 
 			this.onSubmit(name, label, value);
+			this.close();
+		});
+
+		// Cancel button
+		const cancelButton = buttonContainer.createEl('button', {
+			text: 'Cancel'
+		});
+
+		cancelButton.addEventListener('click', () => {
+			this.close();
+		});
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		contentEl.empty();
+	}
+}
+
+/**
+ * Modal for editing shop type configuration
+ */
+class ShopTypeEditModal extends Modal {
+	private key: string;
+	private shopType: any;
+	private onSubmit: (config: any) => void;
+
+	constructor(
+		app: App,
+		key: string,
+		shopType: any,
+		onSubmit: (config: any) => void
+	) {
+		super(app);
+		this.key = key;
+		this.shopType = shopType;
+		this.onSubmit = onSubmit;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.empty();
+
+		contentEl.createEl('h2', { text: `Edit Shop Type: ${this.shopType.label}` });
+
+		contentEl.createEl('p', {
+			text: `Configure which item types can appear in "${this.shopType.label}" shops. Use "*" to allow all types.`,
+			cls: 'setting-item-description'
+		});
+
+		// Label input
+		const labelSetting = new Setting(contentEl)
+			.setName('Shop Label')
+			.setDesc('Display name for this shop type');
+
+		const labelInput = labelSetting.controlEl.createEl('input', {
+			type: 'text',
+			value: this.shopType.label,
+			attr: { placeholder: 'e.g., Magic Shop' }
+		});
+
+		// Theme input
+		const themeSetting = new Setting(contentEl)
+			.setName('Theme')
+			.setDesc('Visual theme identifier (mystical, forge, rustic, potion)');
+
+		const themeInput = themeSetting.controlEl.createEl('input', {
+			type: 'text',
+			value: this.shopType.theme,
+			attr: { placeholder: 'e.g., mystical' }
+		});
+
+		// Allowed Item Types
+		const itemTypesSetting = new Setting(contentEl)
+			.setName('Allowed Item Types')
+			.setDesc('Comma-separated list of item_type values, or "*" for all types\nExamples: magic, potion, scroll, weapon, consumable');
+
+		const itemTypesInput = itemTypesSetting.controlEl.createEl('input', {
+			type: 'text',
+			value: this.shopType.allowedItemTypes.join(', '),
+			attr: { placeholder: 'e.g., magic, scroll, wand, potion' }
+		});
+
+		// Allowed Equipment Types
+		const equipTypesSetting = new Setting(contentEl)
+			.setName('Allowed Equipment Types')
+			.setDesc('Comma-separated list of equipment_type values, or "*" for all types\nExamples: weapon, armor, shield, ammunition');
+
+		const equipTypesInput = equipTypesSetting.controlEl.createEl('input', {
+			type: 'text',
+			value: this.shopType.allowedEquipmentTypes.join(', '),
+			attr: { placeholder: 'e.g., weapon, armor, shield' }
+		});
+
+		// Allow Variety toggle
+		const varietySetting = new Setting(contentEl)
+			.setName('Allow Variety Items')
+			.setDesc('Allow ~15% of items to be outside the specified types for realism');
+
+		const varietyToggle = varietySetting.controlEl.createEl('input', {
+			type: 'checkbox',
+			attr: { checked: this.shopType.allowVariety ? '' : undefined }
+		});
+		varietyToggle.checked = this.shopType.allowVariety;
+
+		// Buttons
+		const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
+
+		// Submit button
+		const submitButton = buttonContainer.createEl('button', {
+			text: 'Save Changes',
+			cls: 'mod-cta'
+		});
+
+		submitButton.addEventListener('click', () => {
+			const label = labelInput.value.trim();
+			const theme = themeInput.value.trim();
+			const itemTypesStr = itemTypesInput.value.trim();
+			const equipTypesStr = equipTypesInput.value.trim();
+
+			// Validation
+			if (!label) {
+				new Notice('Shop label is required');
+				return;
+			}
+			if (!theme) {
+				new Notice('Theme is required');
+				return;
+			}
+			if (!itemTypesStr) {
+				new Notice('Allowed item types is required');
+				return;
+			}
+			if (!equipTypesStr) {
+				new Notice('Allowed equipment types is required');
+				return;
+			}
+
+			// Parse comma-separated lists
+			const itemTypes = itemTypesStr
+				.split(',')
+				.map(t => t.trim())
+				.filter(t => t.length > 0);
+
+			const equipTypes = equipTypesStr
+				.split(',')
+				.map(t => t.trim())
+				.filter(t => t.length > 0);
+
+			if (itemTypes.length === 0) {
+				new Notice('At least one item type must be specified');
+				return;
+			}
+			if (equipTypes.length === 0) {
+				new Notice('At least one equipment type must be specified');
+				return;
+			}
+
+			// Create updated config
+			const updatedConfig = {
+				label: label,
+				theme: theme,
+				allowedItemTypes: itemTypes,
+				allowedEquipmentTypes: equipTypes,
+				allowVariety: varietyToggle.checked
+			};
+
+			this.onSubmit(updatedConfig);
 			this.close();
 		});
 

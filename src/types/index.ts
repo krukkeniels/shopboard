@@ -58,10 +58,10 @@ export interface ShopData {
 	priceModifier: number;
 	/** Shop inventory with resolved items */
 	inventory: ShopInventoryItem[];
-	/** Number of columns for shop display grid (defaults to 4) */
-	columns?: number;
-	/** Number of rows for shop display grid (defaults to auto-calculated based on viewport) */
-	rows?: number;
+	/** Number of columns for shop display grid */
+	columns: number;
+	/** Number of rows for shop display grid */
+	rows: number;
 	/** Show item descriptions in display (defaults to true) */
 	showDescriptions?: boolean;
 	/** Current page for paginated display (defaults to 1) */
@@ -118,6 +118,12 @@ export interface ShopTypeConfig {
 	label: string;
 	/** Theme identifier (mystical, forge, rustic, potion) */
 	theme: string;
+	/** Allowed item_type values for this shop (use ["*"] for all types) */
+	allowedItemTypes: string[];
+	/** Allowed equipment_type values for this shop (use ["*"] for all types) */
+	allowedEquipmentTypes: string[];
+	/** Allow 10-20% variety items outside the allowed types for realism */
+	allowVariety: boolean;
 }
 
 /**
@@ -142,6 +148,10 @@ export interface ShopboardSettings {
 	imageStyle: ImageStyle;
 	/** Attachment folder name for generated images */
 	attachmentFolder: string;
+	/** Default number of columns for shops that haven't specified */
+	defaultColumns: number;
+	/** Default number of rows for shops that haven't specified */
+	defaultRows: number;
 	/** Settings version for migration */
 	version: string;
 }

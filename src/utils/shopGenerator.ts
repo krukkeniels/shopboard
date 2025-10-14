@@ -5,7 +5,9 @@ import {
 	ShopSize,
 	ShopSizePreset,
 	ShopGenerationParams,
-	GeneratedInventory
+	GeneratedInventory,
+	ShopboardSettings,
+	ShopTypeConfig
 } from '../types';
 
 /**
@@ -13,6 +15,7 @@ import {
  */
 export class ShopGenerator {
 	private itemParser: ItemParser;
+	private settings: ShopboardSettings;
 
 	// Rarity order for comparison
 	private readonly RARITY_ORDER: RarityLevel[] = [
@@ -57,8 +60,9 @@ export class ShopGenerator {
 		}
 	};
 
-	constructor(itemParser: ItemParser) {
+	constructor(itemParser: ItemParser, settings: ShopboardSettings) {
 		this.itemParser = itemParser;
+		this.settings = settings;
 	}
 
 	/**
@@ -132,6 +136,79 @@ export class ShopGenerator {
 		return items.filter(item =>
 			this.isRarityInRange(item.rarity, minRarity, maxRarity)
 		);
+	}
+
+	/**
+	 * Filter items by shop type constraints
+	 * Checks if item's type matches the shop's allowed types
+	 */
+	filterItemsByShopType(
+		items: ItemData[],
+		shopType: string,
+		includeVariety: boolean = false
+	): ItemData[] {
+		// Get shop type configuration
+		const shopConfig: ShopTypeConfig | undefined = this.settings.shopTypes[shopType];
+
+		// If shop type not configured, allow all items
+		if (!shopConfig) {
+			console.warn(`Shop type "${shopType}" not found in settings, allowing all items`);
+			return items;
+		}
+
+		// Check if wildcards are used (allow all types)
+		const allowAllItemTypes = shopConfig.allowedItemTypes.includes('*');
+		const allowAllEquipmentTypes = shopConfig.allowedEquipmentTypes.includes('*');
+
+		// If both are wildcards, no filtering needed
+		if (allowAllItemTypes && allowAllEquipmentTypes) {
+			return items;
+		}
+
+		return items.filter(item => {
+			// Check if item is a staple for this shop type (always include staples)
+			if (item.stapleForShops && item.stapleForShops.includes(shopType)) {
+				return true;
+			}
+
+			// Apply variety logic: 15% chance to include items that don't match
+			if (includeVariety && shopConfig.allowVariety && Math.random() < 0.15) {
+				return true;
+			}
+
+			// Get item type information from metadata
+			const metadata = item.metadata || {};
+			const metaType = metadata.type;
+
+			// Check equipment type
+			if (metaType === 'equipment') {
+				const equipmentType = metadata.equipment_type;
+				if (equipmentType) {
+					// Normalize to lowercase for comparison
+					const normalizedType = equipmentType.toLowerCase();
+					return allowAllEquipmentTypes ||
+						shopConfig.allowedEquipmentTypes.some(allowed =>
+							allowed.toLowerCase() === normalizedType
+						);
+				}
+				// If no equipment_type specified, check against item types as fallback
+				return allowAllItemTypes;
+			}
+
+			// Check item type
+			const itemType = metadata.item_type;
+			if (itemType) {
+				// Normalize to lowercase for comparison
+				const normalizedType = itemType.toLowerCase();
+				return allowAllItemTypes ||
+					shopConfig.allowedItemTypes.some(allowed =>
+						allowed.toLowerCase() === normalizedType
+					);
+			}
+
+			// If no type metadata, include by default if wildcards are used
+			return allowAllItemTypes || allowAllEquipmentTypes;
+		});
 	}
 
 	/**
@@ -260,9 +337,26 @@ export class ShopGenerator {
 			console.log(`Added ${addedItemNames.size} staple items for ${params.shopType}`);
 		}
 
-		// Step 2: Filter by rarity for random items
-		const filteredItems = this.filterItemsByRarity(
+		// Step 2: Filter by shop type (before rarity)
+		const shopTypeFilteredItems = this.filterItemsByShopType(
 			allItems,
+			params.shopType,
+			true // Include variety items
+		);
+
+		if (shopTypeFilteredItems.length === 0) {
+			console.warn(`No items match the shop type "${params.shopType}"`);
+			// Return staple items only if any were added
+			return {
+				items: inventory,
+				totalValue: totalValue,
+				itemCount: inventory.length
+			};
+		}
+
+		// Step 3: Filter by rarity for random items
+		const filteredItems = this.filterItemsByRarity(
+			shopTypeFilteredItems,
 			params.minRarity,
 			params.maxRarity
 		);
@@ -277,7 +371,7 @@ export class ShopGenerator {
 			};
 		}
 
-		// Step 3: Fill remaining slots with random items
+		// Step 4: Fill remaining slots with random items
 		const targetCount = this.randomInt(params.size.minItems, params.size.maxItems);
 		const remainingSlots = Math.max(0, targetCount - inventory.length);
 

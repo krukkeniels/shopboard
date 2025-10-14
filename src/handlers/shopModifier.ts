@@ -25,22 +25,10 @@ export class ShopModifier {
 			throw new Error('Price modifier must be a valid number');
 		}
 
-		// Read current file content
-		const content = await this.app.vault.read(shopFile);
-
-		// Parse frontmatter
-		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
-
-		if (!frontmatter) {
-			throw new Error('Shop note has no frontmatter');
-		}
-
-		// Update price modifier
-		frontmatter.price_modifier = newModifier;
-
-		// Serialize back to YAML and write
-		const updatedContent = this.serializeFrontmatter(frontmatter, body);
-		await this.app.vault.modify(shopFile, updatedContent);
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
+			frontmatter.price_modifier = newModifier;
+		});
 
 		console.log(`Price modifier updated to: ${newModifier}%`);
 	}
@@ -59,22 +47,10 @@ export class ShopModifier {
 			throw new Error('Column count must be an integer between 2 and 8');
 		}
 
-		// Read current file content
-		const content = await this.app.vault.read(shopFile);
-
-		// Parse frontmatter
-		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
-
-		if (!frontmatter) {
-			throw new Error('Shop note has no frontmatter');
-		}
-
-		// Update columns
-		frontmatter.columns = columns;
-
-		// Serialize back to YAML and write
-		const updatedContent = this.serializeFrontmatter(frontmatter, body);
-		await this.app.vault.modify(shopFile, updatedContent);
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
+			frontmatter.columns = columns;
+		});
 
 		console.log(`Columns updated to: ${columns}`);
 	}
@@ -82,39 +58,23 @@ export class ShopModifier {
 	/**
 	 * Update shop row count
 	 * @param shopFile Shop note file
-	 * @param rows New row count (1-30, or undefined for auto)
+	 * @param rows New row count (1-30)
 	 */
 	async updateRows(
 		shopFile: TFile,
-		rows: number | undefined
+		rows: number
 	): Promise<void> {
-		// Validate row count if defined
-		if (rows !== undefined && (!Number.isInteger(rows) || rows < 1 || rows > 30)) {
+		// Validate row count
+		if (!Number.isInteger(rows) || rows < 1 || rows > 30) {
 			throw new Error('Row count must be an integer between 1 and 30');
 		}
 
-		// Read current file content
-		const content = await this.app.vault.read(shopFile);
-
-		// Parse frontmatter
-		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
-
-		if (!frontmatter) {
-			throw new Error('Shop note has no frontmatter');
-		}
-
-		// Update rows (delete field if undefined for auto-calculation)
-		if (rows === undefined) {
-			delete frontmatter.rows;
-		} else {
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
 			frontmatter.rows = rows;
-		}
+		});
 
-		// Serialize back to YAML and write
-		const updatedContent = this.serializeFrontmatter(frontmatter, body);
-		await this.app.vault.modify(shopFile, updatedContent);
-
-		console.log(`Rows updated to: ${rows === undefined ? 'auto' : rows}`);
+		console.log(`Rows updated to: ${rows}`);
 	}
 
 	/**
@@ -131,22 +91,10 @@ export class ShopModifier {
 			throw new Error('showDescriptions must be a boolean');
 		}
 
-		// Read current file content
-		const content = await this.app.vault.read(shopFile);
-
-		// Parse frontmatter
-		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
-
-		if (!frontmatter) {
-			throw new Error('Shop note has no frontmatter');
-		}
-
-		// Update showDescriptions
-		frontmatter.show_descriptions = showDescriptions;
-
-		// Serialize back to YAML and write
-		const updatedContent = this.serializeFrontmatter(frontmatter, body);
-		await this.app.vault.modify(shopFile, updatedContent);
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
+			frontmatter.show_descriptions = showDescriptions;
+		});
 
 		console.log(`Show descriptions updated to: ${showDescriptions}`);
 	}
@@ -165,24 +113,79 @@ export class ShopModifier {
 			throw new Error('Page must be a positive integer');
 		}
 
-		// Read current file content
-		const content = await this.app.vault.read(shopFile);
-
-		// Parse frontmatter
-		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
-
-		if (!frontmatter) {
-			throw new Error('Shop note has no frontmatter');
-		}
-
-		// Update current page
-		frontmatter.current_page = page;
-
-		// Serialize back to YAML and write
-		const updatedContent = this.serializeFrontmatter(frontmatter, body);
-		await this.app.vault.modify(shopFile, updatedContent);
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
+			frontmatter.current_page = page;
+		});
 
 		console.log(`Current page updated to: ${page}`);
+	}
+
+	/**
+	 * Update multiple display settings atomically (prevents race conditions)
+	 * This method performs a single read-modify-write operation, preventing the
+	 * race condition where sequential updates can overwrite each other.
+	 *
+	 * @param shopFile Shop note file
+	 * @param updates Object containing the settings to update
+	 */
+	async updateDisplaySettings(
+		shopFile: TFile,
+		updates: {
+			columns?: number;
+			rows?: number;
+			currentPage?: number;
+			showDescriptions?: boolean;
+		}
+	): Promise<void> {
+		// Validate inputs
+		if (updates.columns !== undefined) {
+			if (!Number.isInteger(updates.columns) || updates.columns < 2 || updates.columns > 8) {
+				throw new Error('Column count must be an integer between 2 and 8');
+			}
+		}
+
+		if (updates.rows !== undefined) {
+			if (!Number.isInteger(updates.rows) || updates.rows < 1 || updates.rows > 30) {
+				throw new Error('Row count must be an integer between 1 and 30');
+			}
+		}
+
+		if (updates.currentPage !== undefined) {
+			if (!Number.isInteger(updates.currentPage) || updates.currentPage < 1) {
+				throw new Error('Page must be a positive integer');
+			}
+		}
+
+		if (updates.showDescriptions !== undefined) {
+			if (typeof updates.showDescriptions !== 'boolean') {
+				throw new Error('showDescriptions must be a boolean');
+			}
+		}
+
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
+			// Update all provided fields in a single operation
+			if (updates.columns !== undefined) {
+				frontmatter.columns = updates.columns;
+			}
+
+			if (updates.rows !== undefined) {
+				frontmatter.rows = updates.rows;
+			}
+
+			if (updates.currentPage !== undefined) {
+				frontmatter.current_page = updates.currentPage;
+			}
+
+			if (updates.showDescriptions !== undefined) {
+				frontmatter.show_descriptions = updates.showDescriptions;
+			}
+		});
+
+		// Log what was updated
+		const updatedFields = Object.keys(updates).join(', ');
+		console.log(`Display settings updated: ${updatedFields}`);
 	}
 
 	/**
@@ -211,38 +214,27 @@ export class ShopModifier {
 			throw new Error('Price override must be a positive number or null');
 		}
 
-		// Read current file content
-		const content = await this.app.vault.read(shopFile);
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
+			// Ensure inventory array exists
+			if (!frontmatter.inventory) {
+				frontmatter.inventory = [];
+			}
 
-		// Parse frontmatter
-		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
+			if (!Array.isArray(frontmatter.inventory)) {
+				throw new Error('Shop note has invalid inventory');
+			}
 
-		if (!frontmatter) {
-			throw new Error('Shop note has no frontmatter');
-		}
+			// Create new inventory item
+			const newItem = {
+				item: itemRef,
+				quantity: quantity,
+				price_override: priceOverride
+			};
 
-		// Ensure inventory array exists
-		if (!frontmatter.inventory) {
-			frontmatter.inventory = [];
-		}
-
-		if (!Array.isArray(frontmatter.inventory)) {
-			throw new Error('Shop note has invalid inventory');
-		}
-
-		// Create new inventory item
-		const newItem = {
-			item: itemRef,
-			quantity: quantity,
-			price_override: priceOverride
-		};
-
-		// Add to inventory
-		frontmatter.inventory.push(newItem);
-
-		// Serialize back to YAML and write
-		const updatedContent = this.serializeFrontmatter(frontmatter, body);
-		await this.app.vault.modify(shopFile, updatedContent);
+			// Add to inventory
+			frontmatter.inventory.push(newItem);
+		});
 
 		console.log(`Added item to inventory: ${itemRef} (qty: ${quantity})`);
 	}
@@ -261,35 +253,26 @@ export class ShopModifier {
 			throw new Error('Invalid item index');
 		}
 
-		// Read current file content
-		const content = await this.app.vault.read(shopFile);
+		let itemName = 'Unknown';
 
-		// Parse frontmatter
-		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
+			// Validate inventory
+			if (!frontmatter.inventory || !Array.isArray(frontmatter.inventory)) {
+				throw new Error('Shop note has invalid inventory');
+			}
 
-		if (!frontmatter) {
-			throw new Error('Shop note has no frontmatter');
-		}
+			if (itemIndex < 0 || itemIndex >= frontmatter.inventory.length) {
+				throw new Error('Invalid item index');
+			}
 
-		// Validate inventory
-		if (!frontmatter.inventory || !Array.isArray(frontmatter.inventory)) {
-			throw new Error('Shop note has invalid inventory');
-		}
+			// Get item name for logging
+			const removedItem = frontmatter.inventory[itemIndex];
+			itemName = removedItem?.item || 'Unknown';
 
-		if (itemIndex < 0 || itemIndex >= frontmatter.inventory.length) {
-			throw new Error('Invalid item index');
-		}
-
-		// Get item name for logging
-		const removedItem = frontmatter.inventory[itemIndex];
-		const itemName = removedItem?.item || 'Unknown';
-
-		// Remove item
-		frontmatter.inventory.splice(itemIndex, 1);
-
-		// Serialize back to YAML and write
-		const updatedContent = this.serializeFrontmatter(frontmatter, body);
-		await this.app.vault.modify(shopFile, updatedContent);
+			// Remove item
+			frontmatter.inventory.splice(itemIndex, 1);
+		});
 
 		console.log(`Removed item from inventory: ${itemName}`);
 	}
@@ -314,33 +297,25 @@ export class ShopModifier {
 			throw new Error('Quantity must be a non-negative integer');
 		}
 
-		// Read current file content
-		const content = await this.app.vault.read(shopFile);
+		let itemName = 'Unknown';
 
-		// Parse frontmatter
-		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
+			// Validate inventory
+			if (!frontmatter.inventory || !Array.isArray(frontmatter.inventory)) {
+				throw new Error('Shop note has invalid inventory');
+			}
 
-		if (!frontmatter) {
-			throw new Error('Shop note has no frontmatter');
-		}
+			if (itemIndex < 0 || itemIndex >= frontmatter.inventory.length) {
+				throw new Error('Invalid item index');
+			}
 
-		// Validate inventory
-		if (!frontmatter.inventory || !Array.isArray(frontmatter.inventory)) {
-			throw new Error('Shop note has invalid inventory');
-		}
+			// Update quantity
+			frontmatter.inventory[itemIndex].quantity = newQuantity;
 
-		if (itemIndex < 0 || itemIndex >= frontmatter.inventory.length) {
-			throw new Error('Invalid item index');
-		}
+			itemName = frontmatter.inventory[itemIndex]?.item || 'Unknown';
+		});
 
-		// Update quantity
-		frontmatter.inventory[itemIndex].quantity = newQuantity;
-
-		// Serialize back to YAML and write
-		const updatedContent = this.serializeFrontmatter(frontmatter, body);
-		await this.app.vault.modify(shopFile, updatedContent);
-
-		const itemName = frontmatter.inventory[itemIndex]?.item || 'Unknown';
 		console.log(`Updated item quantity: ${itemName} (qty: ${newQuantity})`);
 	}
 
@@ -362,16 +337,6 @@ export class ShopModifier {
 			throw new Error('Inventory must be an array');
 		}
 
-		// Read current file content
-		const content = await this.app.vault.read(shopFile);
-
-		// Parse frontmatter
-		const { frontmatter, body } = this.parseFrontmatter(content, shopFile);
-
-		if (!frontmatter) {
-			throw new Error('Shop note has no frontmatter');
-		}
-
 		// Convert inventory to proper format
 		const formattedInventory = inventory.map(item => ({
 			item: item.itemRef,
@@ -379,231 +344,13 @@ export class ShopModifier {
 			price_override: item.priceOverride
 		}));
 
-		// Update inventory
-		frontmatter.inventory = formattedInventory;
-
-		// Serialize back to YAML and write
-		const updatedContent = this.serializeFrontmatter(frontmatter, body);
-		await this.app.vault.modify(shopFile, updatedContent);
+		// Use Obsidian's atomic frontmatter API (preserves all fields automatically)
+		await this.app.fileManager.processFrontMatter(shopFile, (frontmatter) => {
+			// Update inventory
+			frontmatter.inventory = formattedInventory;
+		});
 
 		console.log(`Updated inventory: ${inventory.length} items`);
 	}
 
-	/**
-	 * Parse frontmatter from markdown content
-	 * Uses a simple regex-based parser for frontmatter
-	 */
-	private parseFrontmatter(content: string, file: TFile): {
-		frontmatter: any | null;
-		body: string;
-	} {
-		// Match YAML frontmatter between --- delimiters
-		const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
-		const match = content.match(frontmatterRegex);
-
-		if (!match) {
-			return { frontmatter: null, body: content };
-		}
-
-		const yamlContent = match[1];
-		const body = match[2];
-
-		try {
-			// Use Obsidian's metadata cache to parse YAML
-			const cache = this.app.metadataCache.getFileCache(file);
-
-			if (cache?.frontmatter) {
-				// Return a copy so we can modify it
-				return {
-					frontmatter: { ...cache.frontmatter },
-					body
-				};
-			}
-
-			// Fallback: parse YAML manually (basic implementation)
-			const frontmatter = this.parseYAMLBasic(yamlContent);
-			return { frontmatter, body };
-		} catch (error) {
-			console.error('Error parsing frontmatter:', error);
-			throw new Error('Failed to parse shop frontmatter');
-		}
-	}
-
-	/**
-	 * Basic YAML parser for inventory updates
-	 * Handles the specific structure we need for shop notes
-	 */
-	private parseYAMLBasic(yaml: string): any {
-		const result: any = {};
-		const lines = yaml.split('\n');
-		let currentKey: string | null = null;
-		let currentArray: any[] | null = null;
-		let currentObject: any | null = null;
-
-		for (const line of lines) {
-			const trimmed = line.trim();
-
-			// Skip empty lines and comments
-			if (!trimmed || trimmed.startsWith('#')) continue;
-
-			// Check for array item (starts with -)
-			if (trimmed.startsWith('- ')) {
-				if (!currentArray) {
-					currentArray = [];
-					if (currentKey) {
-						result[currentKey] = currentArray;
-					}
-				}
-
-				// Parse object in array
-				if (trimmed.includes(':')) {
-					currentObject = {};
-					currentArray.push(currentObject);
-
-					// Parse key-value in array item
-					const kvMatch = trimmed.match(/^- (\w+):\s*(.+)$/);
-					if (kvMatch) {
-						const [, key, value] = kvMatch;
-						currentObject[key] = this.parseValue(value);
-					}
-				}
-			}
-			// Check for object property within array item
-			else if (currentObject && trimmed.match(/^\w+:/)) {
-				const kvMatch = trimmed.match(/^(\w+):\s*(.*)$/);
-				if (kvMatch) {
-					const [, key, value] = kvMatch;
-					currentObject[key] = this.parseValue(value);
-				}
-			}
-			// Regular key-value pair
-			else if (trimmed.includes(':')) {
-				const kvMatch = trimmed.match(/^(\w+):\s*(.*)$/);
-				if (kvMatch) {
-					const [, key, value] = kvMatch;
-					currentKey = key;
-
-					// Check if this starts an array
-					if (!value) {
-						currentArray = [];
-						result[key] = currentArray;
-					} else {
-						result[key] = this.parseValue(value);
-						currentArray = null;
-						currentObject = null;
-					}
-				}
-			}
-		}
-
-		return result;
-	}
-
-	/**
-	 * Parse YAML value (string, number, boolean, null)
-	 */
-	private parseValue(value: string): any {
-		const trimmed = value.trim();
-
-		// null
-		if (trimmed === 'null' || trimmed === '~' || trimmed === '') {
-			return null;
-		}
-
-		// Boolean
-		if (trimmed === 'true') return true;
-		if (trimmed === 'false') return false;
-
-		// Number
-		if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
-			return parseFloat(trimmed);
-		}
-
-		// String (remove quotes if present)
-		if (
-			(trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-			(trimmed.startsWith("'") && trimmed.endsWith("'"))
-		) {
-			return trimmed.slice(1, -1);
-		}
-
-		return trimmed;
-	}
-
-	/**
-	 * Serialize frontmatter back to YAML format
-	 * Preserves the original structure as much as possible
-	 */
-	private serializeFrontmatter(frontmatter: any, body: string): string {
-		const yaml = this.toYAML(frontmatter, 0);
-		return `---\n${yaml}---\n${body}`;
-	}
-
-	/**
-	 * Convert object to YAML string
-	 */
-	private toYAML(obj: any, indent: number = 0): string {
-		const indentStr = '  '.repeat(indent);
-		let result = '';
-
-		for (const [key, value] of Object.entries(obj)) {
-			if (Array.isArray(value)) {
-				result += `${indentStr}${key}:\n`;
-				for (const item of value) {
-					if (typeof item === 'object' && item !== null) {
-						// Object in array
-						result += `${indentStr}  -`;
-						let first = true;
-						for (const [k, v] of Object.entries(item)) {
-							if (first) {
-								result += ` ${k}: ${this.formatValue(v)}\n`;
-								first = false;
-							} else {
-								result += `${indentStr}    ${k}: ${this.formatValue(v)}\n`;
-							}
-						}
-					} else {
-						result += `${indentStr}  - ${this.formatValue(item)}\n`;
-					}
-				}
-			} else if (typeof value === 'object' && value !== null) {
-				result += `${indentStr}${key}:\n`;
-				result += this.toYAML(value, indent + 1);
-			} else {
-				result += `${indentStr}${key}: ${this.formatValue(value)}\n`;
-			}
-		}
-
-		return result;
-	}
-
-	/**
-	 * Format a value for YAML output
-	 */
-	private formatValue(value: any): string {
-		if (value === null || value === undefined) {
-			return 'null';
-		}
-
-		if (typeof value === 'string') {
-			// Quote strings with special characters or that look like wikilinks
-			if (
-				value.includes(':') ||
-				value.includes('#') ||
-				value.includes('[') ||
-				value.includes(']') ||
-				value.includes('{') ||
-				value.includes('}')
-			) {
-				return `"${value}"`;
-			}
-			return value;
-		}
-
-		if (typeof value === 'boolean') {
-			return value ? 'true' : 'false';
-		}
-
-		return String(value);
-	}
 }

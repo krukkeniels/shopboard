@@ -44,7 +44,7 @@ export default class ShopboardPlugin extends Plugin {
 
 		// Initialize parsers (Phase 1)
 		this.itemParser = new ItemParser(this.app);
-		this.shopParser = new ShopParser(this.app, this.itemParser);
+		this.shopParser = new ShopParser(this.app, this.itemParser, this.settings);
 		this.priceCalculator = new PriceCalculator(this.settings.currency);
 
 		// Initialize handlers (Phase 3)
@@ -55,7 +55,7 @@ export default class ShopboardPlugin extends Plugin {
 		this.templateProvider = new TemplateProvider(this.settings);
 
 		// Initialize shop generator
-		this.shopGenerator = new ShopGenerator(this.itemParser);
+		this.shopGenerator = new ShopGenerator(this.itemParser, this.settings);
 
 		// Initialize shop restocker
 		this.shopRestocker = new ShopRestocker(this.itemParser, this.shopGenerator);
@@ -135,6 +135,30 @@ export default class ShopboardPlugin extends Plugin {
 		}
 		if (!this.settings.currency.displayCurrency) {
 			this.settings.currency.displayCurrency = 'gp';
+		}
+
+		// Migration: Ensure default columns and rows exist
+		if (this.settings.defaultColumns === undefined) {
+			this.settings.defaultColumns = 4;
+		}
+		if (this.settings.defaultRows === undefined) {
+			this.settings.defaultRows = 5;
+		}
+
+		// Migration: Ensure shop types have item type filtering fields
+		for (const [key, shopType] of Object.entries(this.settings.shopTypes)) {
+			if (!shopType.allowedItemTypes) {
+				// Default to allowing all item types for existing shops
+				shopType.allowedItemTypes = ['*'];
+			}
+			if (!shopType.allowedEquipmentTypes) {
+				// Default to allowing all equipment types for existing shops
+				shopType.allowedEquipmentTypes = ['*'];
+			}
+			if (shopType.allowVariety === undefined) {
+				// Default to allowing variety
+				shopType.allowVariety = true;
+			}
 		}
 	}
 
@@ -303,12 +327,12 @@ export default class ShopboardPlugin extends Plugin {
 
 			let leaf: WorkspaceLeaf;
 			if (existing.length > 0) {
-				// Reuse existing shop display tab
+				// Reuse existing shop display window
 				leaf = existing[0];
 				this.app.workspace.revealLeaf(leaf);
 			} else {
-				// Create new tab
-				leaf = this.app.workspace.getLeaf('tab');
+				// Create new pop-out window for player display
+				leaf = this.app.workspace.getLeaf('window');
 			}
 
 			await leaf.setViewState({

@@ -1,5 +1,5 @@
 import { App, TFile } from 'obsidian';
-import { ShopData, ShopInventoryItem } from '../types';
+import { ShopData, ShopInventoryItem, ShopboardSettings } from '../types';
 import { ItemParser } from './itemParser';
 
 /**
@@ -8,10 +8,12 @@ import { ItemParser } from './itemParser';
 export class ShopParser {
 	private app: App;
 	private itemParser: ItemParser;
+	private settings: ShopboardSettings;
 
-	constructor(app: App, itemParser: ItemParser) {
+	constructor(app: App, itemParser: ItemParser, settings: ShopboardSettings) {
 		this.app = app;
 		this.itemParser = itemParser;
+		this.settings = settings;
 	}
 
 	/**
@@ -43,8 +45,8 @@ export class ShopParser {
 				shopType: fm.shop_type,
 				priceModifier: fm.price_modifier || 0,
 				inventory: [],
-				columns: fm.columns || 4, // Default to 4 columns
-			rows: fm.rows, // Undefined = auto-calculate based on viewport
+				columns: fm.columns ?? this.settings.defaultColumns,
+			rows: fm.rows ?? this.settings.defaultRows,
 				showDescriptions: fm.show_descriptions !== undefined ? fm.show_descriptions : true, // Default to true
 				currentPage: fm.current_page || 1,
 				metadata: { ...fm }

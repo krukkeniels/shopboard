@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf, TFile, Notice } from 'obsidian';
 import { ShopData, ShopInventoryItem } from '../types';
 import ShopboardPlugin from '../main';
 import { AddItemModal } from '../modals/addItemModal';
+import { BuyItemModal } from '../modals/buyItemModal';
 import { RestockModal } from '../modals/restockModal';
 
 /**
@@ -19,7 +20,7 @@ export class DMControlView extends ItemView {
 	private currentShopFile: TFile | null = null;
 	private selectedItemPath: string | null = null;
 	private currentColumns: number = 4;
-	private currentRows: number | undefined = undefined;
+	private currentRows: number = 5;
 	private currentShowDescriptions: boolean = true;
 	private modifyDebounceTimer: number | null = null;
 	private isUpdating: boolean = false;
@@ -74,17 +75,18 @@ export class DMControlView extends ItemView {
 		this.registerEvent(
 			this.app.vault.on('modify', async (file) => {
 				if (this.currentShopFile && file.path === this.currentShopFile.path) {
-					// Skip if we're currently updating to prevent race conditions
-					if (this.isUpdating) {
-						return;
-					}
-
 					// Debounce: wait for file operations to complete
 					if (this.modifyDebounceTimer !== null) {
 						window.clearTimeout(this.modifyDebounceTimer);
 					}
 
+					// Use setTimeout to queue refresh after current operation completes
 					this.modifyDebounceTimer = window.setTimeout(async () => {
+						// Skip if we're STILL updating (ongoing operation)
+						if (this.isUpdating) {
+							return;
+						}
+
 						// Re-parse and update display
 						await this.syncWithShop(this.currentShopFile!);
 						this.modifyDebounceTimer = null;
@@ -114,7 +116,7 @@ export class DMControlView extends ItemView {
 
 		// Listen for row change events from display view
 		this.registerEvent(
-			this.app.workspace.on('shopboard:rows-changed', (rows: number | undefined) => {
+			this.app.workspace.on('shopboard:rows-changed', (rows: number) => {
 				this.currentRows = rows;
 				this.render();
 			})
@@ -212,7 +214,7 @@ export class DMControlView extends ItemView {
 			this.currentShop = shopData;
 
 			// Sync display settings from parsed shop data
-			this.currentColumns = shopData.columns || 4;
+			this.currentColumns = shopData.columns;
 			this.currentRows = shopData.rows;
 			this.currentShowDescriptions = shopData.showDescriptions ?? true;
 
@@ -489,24 +491,19 @@ export class DMControlView extends ItemView {
 			cls: 'row-adjust-button'
 		});
 
-		// Disable if at minimum or if rows is undefined
-		if (this.currentRows !== undefined && this.currentRows <= 1) {
+		// Disable if at minimum
+		if (this.currentRows <= 1) {
 			decreaseButton.disabled = true;
 		}
 
 		decreaseButton.addEventListener('click', async () => {
-			const newRows = this.currentRows !== undefined ? this.currentRows - 1 : 4;
-			await this.handleRowsChange(newRows);
+			await this.handleRowsChange(this.currentRows - 1);
 		});
 
 		// Row count display
-		const rowText = this.currentRows !== undefined
-			? `${this.currentRows} rows`
-			: 'Auto';
-
 		controlsRow.createDiv({
 			cls: 'row-display',
-			text: rowText
+			text: `${this.currentRows} rows`
 		});
 
 		// Increase button
@@ -516,36 +513,21 @@ export class DMControlView extends ItemView {
 		});
 
 		// Disable if at maximum
-		if (this.currentRows !== undefined && this.currentRows >= 30) {
+		if (this.currentRows >= 30) {
 			increaseButton.disabled = true;
 		}
 
 		increaseButton.addEventListener('click', async () => {
-			const newRows = this.currentRows !== undefined ? this.currentRows + 1 : 5;
-			await this.handleRowsChange(newRows);
+			await this.handleRowsChange(this.currentRows + 1);
 		});
-
-		// Reset to auto button (only show if rows is manually set)
-		if (this.currentRows !== undefined) {
-			const resetButton = controlsRow.createEl('button', {
-				text: 'Auto',
-				cls: 'row-reset-button'
-			});
-
-			resetButton.addEventListener('click', async () => {
-				await this.handleRowsChange(undefined);
-			});
-		}
 	}
 
 	/**
 	 * Handle row count change
 	 */
-	private async handleRowsChange(rows: number | undefined): Promise<void> {
-		// Validate range if defined
-		if (rows !== undefined) {
-			rows = Math.max(1, Math.min(30, rows));
-		}
+	private async handleRowsChange(rows: number): Promise<void> {
+		// Validate range
+		rows = Math.max(1, Math.min(30, rows));
 
 		// Set updating flag to prevent race conditions
 		this.isUpdating = true;
@@ -729,6 +711,16 @@ export class DMControlView extends ItemView {
 			this.openAddItemModal();
 		});
 
+		// Buy Item button
+		const buyItemButton = buttonsContainer.createEl('button', {
+			text: '💰 Buy Item',
+			cls: 'action-button buy-item-button'
+		});
+
+		buyItemButton.addEventListener('click', () => {
+			this.openBuyItemModal();
+		});
+
 		// Restock button
 		const restockButton = buttonsContainer.createEl('button', {
 			text: '🔄 Restock Shop',
@@ -759,6 +751,28 @@ export class DMControlView extends ItemView {
 			this.plugin.itemParser,
 			this.plugin.settings,
 			this.plugin.priceCalculator,
+			async (itemRef: string, quantity: number) => {
+				await this.handleAddItem(itemRef, quantity, null);
+			}
+		);
+		modal.open();
+	}
+
+	/**
+	 * Open buy item modal
+	 */
+	private openBuyItemModal(): void {
+		if (!this.currentShop) {
+			new Notice('No shop active');
+			return;
+		}
+
+		const modal = new BuyItemModal(
+			this.app,
+			this.plugin.itemParser,
+			this.plugin.settings,
+			this.plugin.priceCalculator,
+			this.currentShop.priceModifier,
 			async (itemRef: string, quantity: number) => {
 				await this.handleAddItem(itemRef, quantity, null);
 			}

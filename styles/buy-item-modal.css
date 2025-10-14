@@ -1,0 +1,135 @@
+/* ==========================================================================
+   Buy Item Modal - Styles
+   ========================================================================== */
+
+/* Modal container - wider than add-item modal to accommodate buy price column */
+.shopboard-buy-item-modal {
+	padding: 1.5rem;
+	max-width: 1000px;
+	min-width: 800px;
+}
+
+.shopboard-buy-item-modal h2 {
+	margin: 0 0 1rem 0;
+	color: var(--text-title-h1);
+	font-size: 1.5rem;
+	font-weight: 700;
+}
+
+.shopboard-buy-item-modal .modal-description {
+	margin: 0 0 1rem 0;
+	color: var(--text-muted);
+	font-size: 0.9rem;
+	line-height: 1.4;
+}
+
+/* ==========================================================================
+   Buy Modifier Section
+   ========================================================================== */
+
+.buy-modifier-container {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+	padding: 0.75rem;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+}
+
+.buy-modifier-label {
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--text-normal);
+	white-space: nowrap;
+}
+
+.buy-modifier-input {
+	width: 100px;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 0.9rem;
+	font-family: var(--font-interface);
+	transition: border-color 0.2s ease;
+}
+
+.buy-modifier-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.buy-modifier-explanation {
+	flex: 1;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+/* ==========================================================================
+   Buy Price Column
+   ========================================================================== */
+
+.buy-price-cell {
+	font-weight: 700;
+	color: var(--color-green);
+	font-family: var(--font-monospace);
+	white-space: nowrap;
+	min-width: 120px;
+}
+
+/* ==========================================================================
+   Table adjustments for additional column
+   ========================================================================== */
+
+.shopboard-buy-item-modal .item-table-container {
+	max-height: 400px;
+	overflow-y: auto;
+	overflow-x: auto;
+	margin-bottom: 1.5rem;
+}
+
+.shopboard-buy-item-modal .item-name-cell {
+	max-width: 180px;
+}
+
+.shopboard-buy-item-modal .price-cell {
+	min-width: 150px;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 1100px) {
+	.shopboard-buy-item-modal {
+		min-width: 90vw;
+		max-width: 95vw;
+		padding: 1rem;
+	}
+
+	.buy-modifier-container {
+		flex-wrap: wrap;
+	}
+
+	.buy-modifier-explanation {
+		flex-basis: 100%;
+	}
+
+	.shopboard-buy-item-modal .item-table-container {
+		max-height: 350px;
+	}
+
+	.shopboard-buy-item-modal .actions-cell {
+		flex-direction: row;
+		gap: 0.25rem;
+	}
+
+	.shopboard-buy-item-modal .btn-small {
+		padding: 0.25rem 0.5rem;
+		font-size: 0.7rem;
+	}
+}

@@ -164,47 +164,53 @@ export class ImageGenerator {
 			prompt += `${description}. `;
 		}
 
-		// Add rarity-based styling
+		// Add rarity-based visual styling - colors match UI border colors for consistency
 		switch (rarity.toLowerCase()) {
+			case 'artifact':
+				prompt += 'Mythical artifact of ultimate power with overwhelming magical presence in crimson-red energy (#f44336), intense red magical auras and flames, scarlet and ruby divine energy radiating from the item, red arcane lightning and particles, godlike legendary materials with blood-red shimmer, ancient divine runes glowing red, radiating immense power with red and crimson tones. ';
+				break;
 			case 'legendary':
-				prompt += 'Epic and magnificent, radiating powerful magical energy with golden and purple glows. ';
+				prompt += 'Legendary artifact with intense magical auras in golden-orange hues (#ff9800), dramatic orange and gold energy emanating from the item, golden-orange floating magical particles, warm ethereal glows, pristine legendary materials like mithril or adamantine, intricate divine engravings with orange shimmer, radiating overwhelming magical power in orange and gold tones. ';
 				break;
 			case 'very rare':
-				prompt += 'Impressive and magical, with vibrant mystical effects and intricate details. ';
+				prompt += 'Very rare magical item with strong arcane effects in purple and magenta colors (#9c27b0), vibrant purple magical glows, violet and magenta enchantment runes, high-quality exotic materials with purple shimmer, intricate craftsmanship with purple magical details, clearly powerful with purple arcane energy. ';
 				break;
 			case 'rare':
-				prompt += 'Enchanted with subtle magical glows and fine craftsmanship. ';
+				prompt += 'Rare enchanted item with moderate blue magical glow (#2196f3), blue arcane shimmer and aura, fine craftsmanship with quality materials, visible blue enchantment runes or magical sheen, well-made with clear blue magical effects. ';
 				break;
 			case 'uncommon':
-				prompt += 'Well-crafted with a hint of magical properties. ';
+				prompt += 'Uncommon item with light magical properties in green tones (#4caf50), subtle green magical hint or faint green glow, good quality materials and solid craftsmanship, light green enchanted shimmer, practical with minor green magical touch. ';
 				break;
 			case 'common':
 			default:
-				prompt += 'Simple and practical design. ';
+				prompt += 'Common mundane item with simple practical design, gray or silver mundane materials (#9e9e9e), basic functional craftsmanship, no magical effects or glows, clean utilitarian appearance, ordinary non-magical item. ';
 				break;
 		}
 
-		// Add style-specific guidelines
+		// Add style-specific guidelines with improved composition and clarity
 		switch (this.imageStyle) {
 			case 'realistic':
-				prompt += 'Photorealistic product photography, studio lighting, professional quality, clean white background, sharp focus, highly detailed textures. ';
+				prompt += 'Photorealistic product photography style, professional studio lighting with soft shadows, clean white background, item centered and isolated, sharp focus on every detail, highly detailed realistic textures and materials, museum-quality presentation. ';
 				break;
 			case 'fantasy-painting':
-				prompt += 'Classic fantasy art oil painting style, rich colors, painterly brushstrokes, dramatic lighting, white background, epic fantasy illustration. ';
+				prompt += 'Classic fantasy art oil painting style, rich vibrant colors, painterly brushstrokes with visible texture, dramatic cinematic lighting, clean white or neutral background, item centered as the focal point, epic fantasy illustration quality, traditional fantasy art. ';
 				break;
 			case 'digital-art':
-				prompt += 'Clean digital illustration, modern game asset style, vibrant colors, crisp lines, white background, professional quality, no text or labels. ';
+				prompt += 'Clean modern digital illustration, video game asset style, vibrant saturated colors, crisp clean lines, white background, item perfectly centered and isolated, professional game-ready quality, polished digital painting. ';
 				break;
 			case 'isometric':
-				prompt += 'Isometric game asset, pixel-perfect design, isometric perspective, clean lines, white background, video game item style. ';
+				prompt += 'Isometric video game asset, precise isometric perspective (30° angle), pixel-perfect design, clean geometric lines, white background, item centered in frame, retro game style, clear readable silhouette. ';
 				break;
 			case 'sketch':
-				prompt += 'Hand-drawn sketch, pencil and ink drawing, detailed line work, white background, traditional illustration style, monochrome or light color wash. ';
+				prompt += 'Hand-drawn traditional sketch, detailed pencil and ink line work, crosshatching and shading, white paper background, item centered as main subject, traditional illustration style, monochrome or subtle color wash, artistic hand-drawn quality. ';
 				break;
 		}
 
-		// Common guidelines
-		prompt += 'Centered composition, detailed and high quality.';
+		// Universal composition and quality guidelines
+		prompt += 'Single item centered in frame, isolated object on clean background, professional quality, highly detailed. ';
+
+		// CRITICAL: Strong anti-text instructions (DALL-E often generates text unless explicitly prevented)
+		prompt += 'IMPORTANT: No text, no labels, no words, no letters, no names, no titles, no UI elements, no writing of any kind on or near the item.';
 
 		return prompt;
 	}
@@ -267,41 +273,10 @@ export class ImageGenerator {
 	 */
 	private async updateItemFrontmatter(itemFile: TFile, imagePath: string): Promise<void> {
 		try {
-			const content = await this.app.vault.read(itemFile);
-
-			// Parse frontmatter
-			const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-			const match = content.match(frontmatterRegex);
-
-			if (!match) {
-				throw new Error('No frontmatter found');
-			}
-
-			const frontmatterContent = match[1];
-
-			// Check if image_url already exists
-			const imageUrlRegex = /^image_url:\s*.*/m;
-			let newFrontmatter: string;
-
-			if (imageUrlRegex.test(frontmatterContent)) {
-				// Replace existing image_url
-				newFrontmatter = frontmatterContent.replace(
-					imageUrlRegex,
-					`image_url: "${imagePath}"`
-				);
-			} else {
-				// Add new image_url field
-				newFrontmatter = frontmatterContent + `\nimage_url: "${imagePath}"`;
-			}
-
-			// Rebuild the file content
-			const newContent = content.replace(
-				frontmatterRegex,
-				`---\n${newFrontmatter}\n---`
-			);
-
-			// Save the updated content
-			await this.app.vault.modify(itemFile, newContent);
+			// Use Obsidian's atomic frontmatter API (handles all line endings, preserves all fields)
+			await this.app.fileManager.processFrontMatter(itemFile, (frontmatter) => {
+				frontmatter.image_url = imagePath;
+			});
 
 			// Wait for Obsidian's metadata cache to update
 			await this.waitForMetadataUpdate(itemFile);
