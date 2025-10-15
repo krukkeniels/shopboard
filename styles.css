@@ -1766,6 +1766,54 @@
 }
 
 /* ==========================================================================
+   Rarity-based Left Borders for Loot Items
+   ========================================================================== */
+
+.loot-display .loot-item.rarity-common {
+	border-left: 6px solid #9e9e9e;
+}
+
+.loot-display .loot-item.rarity-uncommon {
+	border-left: 6px solid #4caf50;
+}
+
+.loot-display .loot-item.rarity-rare {
+	border-left: 6px solid #2196f3;
+}
+
+.loot-display .loot-item.rarity-very-rare {
+	border-left: 6px solid #9c27b0;
+}
+
+.loot-display .loot-item.rarity-legendary {
+	border-left: 6px solid #ff9800;
+}
+
+.loot-display .loot-item.rarity-artifact {
+	border-left: 6px solid #f44336;
+}
+
+/* Equipment type - subtle border */
+.loot-display .loot-item.item-type-equipment {
+	border-left: 6px solid rgba(146, 64, 14, 0.5);
+}
+
+/* ==========================================================================
+   Loot Item Text Styling - Lighter for Better Readability
+   ========================================================================== */
+
+.loot-display .loot-item .grid-item-name {
+	color: #fef3c7;
+	font-weight: 600;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.loot-display .loot-item .grid-item-description {
+	color: #fcd34d;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* ==========================================================================
    DM Control Panel - Styles
    ========================================================================== */
 
@@ -2208,6 +2256,78 @@
 	border-color: var(--interactive-accent);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 	font-weight: 700;
+}
+
+/* ==========================================================================
+   Fullscreen Controls
+   ========================================================================== */
+
+.fullscreen-controls {
+	margin-top: 1rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.fullscreen-label {
+	display: block;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: 0.5rem;
+}
+
+.fullscreen-control-row {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.fullscreen-indicator {
+	flex: 1;
+	padding: 0.6rem 1rem;
+	background: var(--background-secondary);
+	border: 2px solid var(--background-modifier-border);
+	border-radius: 6px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	text-align: center;
+	transition: all 0.2s ease;
+}
+
+.fullscreen-indicator-active {
+	background: linear-gradient(135deg,
+		rgba(88, 86, 214, 0.15) 0%,
+		rgba(88, 86, 214, 0.05) 100%);
+	border-color: var(--interactive-accent);
+	color: var(--interactive-accent);
+	font-weight: 700;
+}
+
+.fullscreen-toggle-button {
+	flex: 0 0 auto;
+	padding: 0.6rem 1.5rem;
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: 6px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: var(--font-interface);
+	text-align: center;
+	min-width: 80px;
+}
+
+.fullscreen-toggle-button:hover {
+	background: var(--interactive-accent-hover);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fullscreen-toggle-button:active {
+	transform: translateY(0);
 }
 
 /* ==========================================================================
@@ -3381,8 +3501,8 @@
 }
 
 .shop-type-magic_shop .shop-name {
-	color: var(--theme-primary);
-	text-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+	color: white;
+	text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(168, 85, 247, 0.6);
 	font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
 }
 

@@ -142,7 +142,6 @@ export class LootDisplayView extends ItemView {
 		}
 
 		const section = container.createDiv({ cls: 'loot-section loot-coins' });
-		section.createEl('h2', { text: '💰 Treasure' });
 
 		const coinDisplay = section.createDiv({ cls: 'coin-display' });
 		const coinEl = coinDisplay.createDiv({ cls: 'coin-gold' });
@@ -441,14 +440,12 @@ export class LootDisplayView extends ItemView {
 		if (!gems || gems.length === 0) return;
 
 		gems.forEach(gem => {
-			const gemEl = container.createDiv({ cls: 'gem-item inline-item' });
-			gemEl.createEl('div', {
-				text: gem.description,
-				cls: 'gem-description'
-			});
-			gemEl.createEl('div', {
-				text: `${gem.quantity}x`,
-				cls: 'gem-quantity'
+			const gemEl = container.createDiv({ cls: 'loot-item grid-item-compact inline-item' });
+
+			const contentEl = gemEl.createDiv({ cls: 'grid-item-content' });
+			contentEl.createEl('div', {
+				text: `${gem.quantity}x ${gem.description}`,
+				cls: 'grid-item-name'
 			});
 		});
 	}
@@ -461,10 +458,12 @@ export class LootDisplayView extends ItemView {
 		if (!artObjects || artObjects.length === 0) return;
 
 		artObjects.forEach(art => {
-			const artEl = container.createDiv({ cls: 'art-item inline-item' });
-			artEl.createEl('div', {
+			const artEl = container.createDiv({ cls: 'loot-item grid-item-compact inline-item' });
+
+			const contentEl = artEl.createDiv({ cls: 'grid-item-content' });
+			contentEl.createEl('div', {
 				text: art.description,
-				cls: 'art-description'
+				cls: 'grid-item-name'
 			});
 		});
 	}
@@ -477,28 +476,18 @@ export class LootDisplayView extends ItemView {
 		if (!magicItems || magicItems.length === 0) return;
 
 		magicItems.forEach(item => {
-			const itemEl = container.createDiv({ cls: 'magic-item inline-item' });
+			const itemEl = container.createDiv({ cls: 'loot-item grid-item-compact inline-item' });
+
+			// Add rarity class for left border
+			if (item.itemData?.rarity) {
+				itemEl.addClass(`rarity-${item.itemData.rarity.toLowerCase().replace(' ', '-')}`);
+			}
 
 			if (item.itemData) {
-				// Show item name
-				const nameEl = itemEl.createDiv({ cls: 'magic-item-name' });
-				nameEl.textContent = item.identified ? item.itemData.name : 'Unidentified Item';
-
-				// Show rarity
-				if (item.itemData.rarity) {
-					const rarityEl = itemEl.createDiv({ cls: `magic-item-rarity rarity-${item.itemData.rarity.toLowerCase().replace(' ', '-')}` });
-					rarityEl.textContent = item.itemData.rarity;
-				}
-
-				// Show description if identified
-				if (item.identified && item.itemData.description) {
-					const descEl = itemEl.createDiv({ cls: 'magic-item-description' });
-					descEl.textContent = item.itemData.description;
-				}
-
-				// Show image if available
+				// Item image (left side)
 				if (item.itemData.imageUrl) {
-					const imgEl = itemEl.createEl('img', { cls: 'magic-item-image' });
+					const imgContainer = itemEl.createDiv({ cls: 'grid-item-image' });
+					const imgEl = imgContainer.createEl('img');
 
 					// Handle both online URLs and local file paths
 					if (item.itemData.imageUrl.startsWith('http://') || item.itemData.imageUrl.startsWith('https://')) {
@@ -514,14 +503,28 @@ export class LootDisplayView extends ItemView {
 
 					// Handle image load errors gracefully
 					imgEl.onerror = () => {
-						imgEl.style.display = 'none';
+						imgContainer.style.display = 'none';
 					};
+				}
+
+				// Content wrapper (right side)
+				const contentEl = itemEl.createDiv({ cls: 'grid-item-content' });
+
+				// Item name
+				const nameEl = contentEl.createDiv({ cls: 'grid-item-name' });
+				nameEl.textContent = item.identified ? item.itemData.name : 'Unidentified Item';
+
+				// Item description (if identified)
+				if (item.identified && item.itemData.description) {
+					const descEl = contentEl.createDiv({ cls: 'grid-item-description' });
+					descEl.textContent = item.itemData.description;
 				}
 			} else {
 				// Fallback for missing item data
-				itemEl.createDiv({
+				const contentEl = itemEl.createDiv({ cls: 'grid-item-content' });
+				contentEl.createDiv({
 					text: item.itemRef,
-					cls: 'magic-item-name'
+					cls: 'grid-item-name'
 				});
 			}
 		});
@@ -535,28 +538,13 @@ export class LootDisplayView extends ItemView {
 		if (!equipment || equipment.length === 0) return;
 
 		equipment.forEach(item => {
-			const itemEl = container.createDiv({ cls: 'equipment-item inline-item' });
+			const itemEl = container.createDiv({ cls: 'loot-item grid-item-compact inline-item item-type-equipment' });
 
 			if (item.itemData) {
-				// Show item name
-				const nameEl = itemEl.createDiv({ cls: 'equipment-item-name' });
-				nameEl.textContent = item.itemData.name;
-
-				// Show equipment type if available
-				if (item.itemData.metadata?.equipment_type) {
-					const typeEl = itemEl.createDiv({ cls: 'equipment-item-type' });
-					typeEl.textContent = item.itemData.metadata.equipment_type;
-				}
-
-				// Show description
-				if (item.itemData.description) {
-					const descEl = itemEl.createDiv({ cls: 'equipment-item-description' });
-					descEl.textContent = item.itemData.description;
-				}
-
-				// Show image if available
+				// Item image (left side)
 				if (item.itemData.imageUrl) {
-					const imgEl = itemEl.createEl('img', { cls: 'equipment-item-image' });
+					const imgContainer = itemEl.createDiv({ cls: 'grid-item-image' });
+					const imgEl = imgContainer.createEl('img');
 
 					// Handle both online URLs and local file paths
 					if (item.itemData.imageUrl.startsWith('http://') || item.itemData.imageUrl.startsWith('https://')) {
@@ -572,14 +560,28 @@ export class LootDisplayView extends ItemView {
 
 					// Handle image load errors gracefully
 					imgEl.onerror = () => {
-						imgEl.style.display = 'none';
+						imgContainer.style.display = 'none';
 					};
+				}
+
+				// Content wrapper (right side)
+				const contentEl = itemEl.createDiv({ cls: 'grid-item-content' });
+
+				// Item name
+				const nameEl = contentEl.createDiv({ cls: 'grid-item-name' });
+				nameEl.textContent = item.itemData.name;
+
+				// Item description
+				if (item.itemData.description) {
+					const descEl = contentEl.createDiv({ cls: 'grid-item-description' });
+					descEl.textContent = item.itemData.description;
 				}
 			} else {
 				// Fallback for missing item data
-				itemEl.createDiv({
+				const contentEl = itemEl.createDiv({ cls: 'grid-item-content' });
+				contentEl.createDiv({
 					text: item.itemRef,
-					cls: 'equipment-item-name'
+					cls: 'grid-item-name'
 				});
 			}
 		});
@@ -593,10 +595,12 @@ export class LootDisplayView extends ItemView {
 		if (!mundaneItems || mundaneItems.length === 0) return;
 
 		mundaneItems.forEach(item => {
-			const itemEl = container.createDiv({ cls: 'mundane-item inline-item' });
-			itemEl.createEl('span', {
+			const itemEl = container.createDiv({ cls: 'loot-item grid-item-compact inline-item' });
+
+			const contentEl = itemEl.createDiv({ cls: 'grid-item-content' });
+			contentEl.createEl('div', {
 				text: `${item.quantity}x ${item.name}`,
-				cls: 'mundane-item-name'
+				cls: 'grid-item-name'
 			});
 		});
 	}
@@ -609,28 +613,21 @@ export class LootDisplayView extends ItemView {
 		if (!salvage || salvage.length === 0) return;
 
 		salvage.forEach(material => {
-			const materialEl = container.createDiv({ cls: 'salvage-item inline-item' });
+			const materialEl = container.createDiv({ cls: 'loot-item grid-item-compact inline-item' });
 
-			materialEl.createEl('div', {
+			const contentEl = materialEl.createDiv({ cls: 'grid-item-content' });
+
+			// Salvage name
+			contentEl.createEl('div', {
 				text: material.name,
-				cls: 'salvage-name'
+				cls: 'grid-item-name'
 			});
 
-			materialEl.createEl('div', {
-				text: material.description,
-				cls: 'salvage-description'
+			// Salvage description
+			contentEl.createEl('div', {
+				text: `${material.description} (Harvest DC: ${material.harvestDC})`,
+				cls: 'grid-item-description'
 			});
-
-			const metaEl = materialEl.createDiv({ cls: 'salvage-meta' });
-			metaEl.createEl('span', {
-				text: `Harvest DC: ${material.harvestDC}`,
-				cls: 'salvage-dc'
-			});
-
-			if (material.craftingTags.length > 0) {
-				const tagsEl = materialEl.createDiv({ cls: 'salvage-tags' });
-				tagsEl.textContent = `Uses: ${material.craftingTags.join(', ')}`;
-			}
 		});
 	}
 

@@ -753,25 +753,6 @@ export class ShopDisplayView extends ItemView {
 				text: `Page ${this.currentPage} of ${totalPages}`
 			});
 		}
-
-		// Fullscreen button (only show in pop-out windows)
-		if (this.isInWindow()) {
-			const fullscreenButton = headerEl.createEl('button', {
-				cls: 'fullscreen-button',
-				attr: {
-					title: this.isFullscreen ? 'Exit Fullscreen (F11/ESC)' : 'Enter Fullscreen (F11)',
-					'aria-label': this.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'
-				}
-			});
-
-			// Icon changes based on fullscreen state
-			fullscreenButton.textContent = this.isFullscreen ? '⛶' : '⛶';
-
-			// Click handler
-			fullscreenButton.addEventListener('click', () => {
-				this.toggleFullscreen();
-			});
-		}
 	}
 
 	/**

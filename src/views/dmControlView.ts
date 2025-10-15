@@ -309,6 +309,9 @@ export class DMControlView extends ItemView {
 		// Description toggle
 		this.renderDescriptionToggle(headerEl);
 
+		// Fullscreen controls
+		this.renderFullscreenControls(headerEl);
+
 		// Pagination controls
 		this.renderPaginationControls(headerEl);
 	}
@@ -606,6 +609,73 @@ export class DMControlView extends ItemView {
 		} finally {
 			this.isUpdating = false;
 		}
+	}
+
+	/**
+	 * Render fullscreen controls for the display window
+	 */
+	private renderFullscreenControls(container: HTMLElement): void {
+		// Get the active shop display view
+		const displayLeaves = this.app.workspace.getLeavesOfType('shopboard-display');
+		if (displayLeaves.length === 0) return;
+
+		const displayView = displayLeaves[0].view as any;
+		if (!displayView) return;
+
+		// Check if the display view is in a pop-out window
+		const isInWindow = displayView.isInWindow && displayView.isInWindow();
+		if (!isInWindow) return;
+
+		// Get current fullscreen state
+		const isFullscreen = displayView.isFullscreen || false;
+
+		const fullscreenContainer = container.createDiv({ cls: 'fullscreen-controls' });
+
+		fullscreenContainer.createEl('label', {
+			text: 'Fullscreen Mode:',
+			cls: 'fullscreen-label'
+		});
+
+		const controlRow = fullscreenContainer.createDiv({ cls: 'fullscreen-control-row' });
+
+		// Fullscreen state indicator
+		const stateIndicator = controlRow.createDiv({
+			cls: isFullscreen ? 'fullscreen-indicator fullscreen-indicator-active' : 'fullscreen-indicator',
+			text: isFullscreen ? '⛶ Fullscreen' : '⛶ Windowed'
+		});
+
+		// Toggle button
+		const toggleButton = controlRow.createEl('button', {
+			text: isFullscreen ? 'Exit' : 'Enter',
+			cls: 'fullscreen-toggle-button',
+			attr: {
+				title: isFullscreen ? 'Exit fullscreen mode (F11/ESC)' : 'Enter fullscreen mode (F11)'
+			}
+		});
+
+		toggleButton.addEventListener('click', () => {
+			this.handleFullscreenToggle();
+		});
+	}
+
+	/**
+	 * Handle fullscreen toggle
+	 */
+	private handleFullscreenToggle(): void {
+		// Get the active shop display view
+		const displayLeaves = this.app.workspace.getLeavesOfType('shopboard-display');
+		if (displayLeaves.length === 0) return;
+
+		const displayView = displayLeaves[0].view as any;
+		if (!displayView || !displayView.toggleFullscreen) return;
+
+		// Call the display view's toggleFullscreen method
+		displayView.toggleFullscreen();
+
+		// Re-render to update the button state
+		setTimeout(() => {
+			this.render();
+		}, 100);
 	}
 
 	/**
