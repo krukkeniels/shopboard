@@ -288,3 +288,196 @@ export interface RestockResult {
 	/** Items whose quantities were reduced */
 	reducedCount: number;
 }
+
+/**
+ * Loot type for treasure generation
+ */
+export type LootType = 'individual' | 'hoard' | 'lair';
+
+/**
+ * Environment/biome for loot flavor
+ */
+export type BiomeType = 'dungeon' | 'forest' | 'mountain' | 'aquatic' | 'underdark' | 'urban' | 'planar' | 'desert';
+
+/**
+ * Container type for loot
+ */
+export type ContainerType = 'chest' | 'pouch' | 'on-body' | 'scattered' | 'vault' | 'none';
+
+/**
+ * Challenge Rating tier for treasure tables
+ */
+export type CRTier = '0-4' | '5-10' | '11-16' | '17+';
+
+/**
+ * Gem value tier
+ */
+export type GemValue = 10 | 50 | 100 | 500 | 1000 | 5000;
+
+/**
+ * Art object value tier
+ */
+export type ArtValue = 25 | 250 | 750 | 2500 | 7500;
+
+/**
+ * Magic item table identifier (DMG tables)
+ */
+export type MagicItemTable = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I';
+
+/**
+ * Parameters for generating loot
+ */
+export interface LootGenerationParams {
+	/** Challenge rating for treasure budget (null = manual XP) */
+	challengeRating: number | null;
+	/** Experience points (used if CR is null) */
+	experiencePoints: number;
+	/** Party size for scaling */
+	partySize: number;
+	/** Average party level */
+	partyLevel: number;
+	/** Type of loot to generate */
+	lootType: LootType;
+	/** Environment/biome for flavor */
+	biome: BiomeType;
+	/** Container type */
+	containerType: ContainerType;
+	/** Coin amount percentage (0-100, higher = more coins) */
+	coinPercentage: number;
+	/** Minimum magic item rarity (null = no minimum) */
+	minRarity: RarityLevel | null;
+	/** Maximum magic item rarity (null = no maximum) */
+	maxRarity: RarityLevel | null;
+	/** Percentage of consumable items (0-100) */
+	consumablePercentage: number;
+	/** Low magic setting - reduces magic item drops */
+	lowMagic: boolean;
+	/** Generate art objects (paintings, sculptures, jewelry) */
+	generateArtObjects: boolean;
+	/** Generate equipment (weapons, armor, tools) */
+	generateEquipment: boolean;
+	/** Enable salvage material generation from monsters */
+	enableSalvage: boolean;
+	/** Track which magic items are identified */
+	trackIdentification: boolean;
+	/** Monster type for salvage flavor (if enableSalvage) */
+	monsterType: string;
+	/** Include encumbrance notes */
+	includeEncumbrance: boolean;
+	/** RNG seed for reproducibility (null = random) */
+	seed: string | null;
+}
+
+/**
+ * Generated coin loot (simplified to gold only)
+ */
+export interface CoinLoot {
+	/** Total value in gold pieces (all denominations converted) */
+	gold: number;
+}
+
+/**
+ * Generated gem
+ */
+export interface Gem {
+	/** Gem value in gold pieces */
+	value: GemValue;
+	/** Gem description */
+	description: string;
+	/** Quantity */
+	quantity: number;
+}
+
+/**
+ * Generated art object
+ */
+export interface ArtObject {
+	/** Art object value in gold pieces */
+	value: ArtValue;
+	/** Art object description */
+	description: string;
+}
+
+/**
+ * Generated magic item
+ */
+export interface MagicItemLoot {
+	/** Reference to item note */
+	itemRef: string;
+	/** Item data (resolved) */
+	itemData: ItemData | null;
+	/** Quantity */
+	quantity: number;
+	/** Whether item is identified */
+	identified: boolean;
+	/** Table rolled on */
+	table: MagicItemTable;
+}
+
+/**
+ * Generated equipment item
+ */
+export interface EquipmentLoot {
+	/** Reference to equipment note */
+	itemRef: string;
+	/** Equipment data (resolved) */
+	itemData: ItemData | null;
+	/** Quantity */
+	quantity: number;
+}
+
+/**
+ * Salvage material
+ */
+export interface SalvageMaterial {
+	/** Material name */
+	name: string;
+	/** Material description */
+	description: string;
+	/** Estimated value in gp */
+	value: number;
+	/** Crafting tags/uses */
+	craftingTags: string[];
+	/** Difficulty to harvest (DC) */
+	harvestDC: number;
+}
+
+/**
+ * Generated loot result
+ */
+export interface GeneratedLoot {
+	/** Coins */
+	coins: CoinLoot;
+	/** Generated gems */
+	gems: Gem[];
+	/** Generated art objects */
+	artObjects: ArtObject[];
+	/** Generated magic items */
+	magicItems: MagicItemLoot[];
+	/** Generated equipment */
+	equipment: EquipmentLoot[];
+	/** Generated mundane items */
+	mundaneItems: Array<{
+		name: string;
+		quantity: number;
+		value: number;
+	}>;
+	/** Generated salvage materials */
+	salvage: SalvageMaterial[];
+	/** Container description */
+	containerDescription: string;
+	/** Total value in gold pieces */
+	totalValue: number;
+	/** Total weight in pounds */
+	totalWeight: number;
+	/** Generation metadata */
+	metadata: {
+		challengeRating: number | null;
+		experiencePoints: number;
+		partySize: number;
+		partyLevel: number;
+		lootType: LootType;
+		timestamp: number;
+		seed: string;
+	};
+}

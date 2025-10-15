@@ -49,8 +49,10 @@ function bundleCSS() {
 	const cssFiles = [
 		path.join(stylesDir, 'main.css'),
 		path.join(stylesDir, 'display.css'),
+		path.join(stylesDir, 'loot-display.css'),
 		path.join(stylesDir, 'dm-control.css'),
 		path.join(stylesDir, 'template-modal.css'),
+		path.join(stylesDir, 'loot-generator-modal.css'),
 		path.join(stylesDir, 'themes', 'magic-shop.css'),
 		path.join(stylesDir, 'themes', 'blacksmith.css'),
 		path.join(stylesDir, 'themes', 'general-store.css'),

@@ -1,19 +1,22 @@
 import { Plugin, TFile, WorkspaceLeaf, Menu, Notice } from 'obsidian';
-import { ShopboardSettings } from './types';
+import { ShopboardSettings, GeneratedLoot } from './types';
 import { DEFAULT_SETTINGS, ShopboardSettingTab } from './settings';
 import { ItemParser } from './parsers/itemParser';
 import { ShopParser } from './parsers/shopParser';
 import { PriceCalculator } from './utils/priceCalculator';
 import { ShopDisplayView, VIEW_TYPE_SHOP_DISPLAY } from './views/shopDisplayView';
 import { DMControlView, VIEW_TYPE_DM_CONTROL } from './views/dmControlView';
+import { LootDisplayView, VIEW_TYPE_LOOT_DISPLAY } from './views/lootDisplayView';
 import { PurchaseHandler } from './handlers/purchaseHandler';
 import { ShopModifier } from './handlers/shopModifier';
 import { TemplateProvider } from './utils/templateProvider';
 import { ShopGenerator } from './utils/shopGenerator';
 import { ShopRestocker } from './utils/shopRestocker';
 import { ImageGenerator } from './utils/imageGenerator';
+import { LootGenerator } from './utils/lootGenerator';
 import { TemplateSelectionModal } from './modals/templateSelectionModal';
 import { ShopBuilderModal } from './modals/shopBuilderModal';
+import { LootGeneratorModal } from './modals/lootGeneratorModal';
 
 /**
  * Main Shopboard plugin class
@@ -29,6 +32,7 @@ export default class ShopboardPlugin extends Plugin {
 	shopGenerator!: ShopGenerator;
 	shopRestocker!: ShopRestocker;
 	imageGenerator!: ImageGenerator;
+	lootGenerator!: LootGenerator;
 
 	/**
 	 * Plugin initialization
@@ -63,6 +67,9 @@ export default class ShopboardPlugin extends Plugin {
 		// Initialize image generator
 		this.imageGenerator = new ImageGenerator(this.app, this.settings.openaiApiKey, this.settings.imageStyle, this.settings.attachmentFolder);
 
+		// Initialize loot generator
+		this.lootGenerator = new LootGenerator(this.itemParser);
+
 		// Perform initial item scan
 		try {
 			// Scan both item and equipment folders
@@ -88,6 +95,11 @@ export default class ShopboardPlugin extends Plugin {
 		this.registerView(
 			VIEW_TYPE_DM_CONTROL,
 			(leaf) => new DMControlView(leaf, this)
+		);
+
+		this.registerView(
+			VIEW_TYPE_LOOT_DISPLAY,
+			(leaf) => new LootDisplayView(leaf, this)
 		);
 
 		// Register commands
@@ -116,6 +128,7 @@ export default class ShopboardPlugin extends Plugin {
 		// Detach all views
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_SHOP_DISPLAY);
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_DM_CONTROL);
+		this.app.workspace.detachLeavesOfType(VIEW_TYPE_LOOT_DISPLAY);
 	}
 
 	/**
@@ -247,6 +260,15 @@ export default class ShopboardPlugin extends Plugin {
 			name: 'Build custom shop',
 			callback: () => {
 				this.openShopBuilderModal();
+			}
+		});
+
+		// Command: Generate loot
+		this.addCommand({
+			id: 'generate-loot',
+			name: 'Generate loot',
+			callback: () => {
+				this.openLootGeneratorModal();
 			}
 		});
 	}
@@ -424,6 +446,56 @@ export default class ShopboardPlugin extends Plugin {
 	}
 
 	/**
+	 * Open loot generator modal for treasure generation
+	 */
+	openLootGeneratorModal(): void {
+		const modal = new LootGeneratorModal(
+			this.app,
+			this.lootGenerator,
+			async (loot: GeneratedLoot) => {
+				// Display the generated loot
+				await this.displayLoot(loot);
+			}
+		);
+		modal.open();
+	}
+
+	/**
+	 * Display generated loot in a new window
+	 */
+	async displayLoot(loot: GeneratedLoot): Promise<void> {
+		try {
+			// Check if loot display is already open
+			const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_LOOT_DISPLAY);
+
+			let leaf: WorkspaceLeaf;
+			if (existing.length > 0) {
+				// Reuse existing loot display window
+				leaf = existing[0];
+				this.app.workspace.revealLeaf(leaf);
+			} else {
+				// Create new pop-out window for loot display
+				leaf = this.app.workspace.getLeaf('window');
+			}
+
+			await leaf.setViewState({
+				type: VIEW_TYPE_LOOT_DISPLAY,
+				active: true
+			});
+
+			const view = leaf.view;
+			if (view instanceof LootDisplayView) {
+				view.setLoot(loot);
+			}
+
+			new Notice(`Loot displayed! Total value: ${loot.totalValue} gp`);
+		} catch (error) {
+			console.error('Error displaying loot:', error);
+			new Notice('Failed to display loot. Check console for details.');
+		}
+	}
+
+	/**
 	 * Generate an AI image for an item
 	 */
 	async generateItemImage(file: TFile): Promise<void> {
@@ -481,6 +553,17 @@ export default class ShopboardPlugin extends Plugin {
 				.setIcon('wand-2')
 				.onClick(() => {
 					this.openShopBuilderModal();
+				});
+		});
+
+		menu.addSeparator();
+
+		menu.addItem((item) => {
+			item
+				.setTitle('Generate Loot')
+				.setIcon('coins')
+				.onClick(() => {
+					this.openLootGeneratorModal();
 				});
 		});
 
