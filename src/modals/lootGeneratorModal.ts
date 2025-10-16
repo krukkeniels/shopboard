@@ -70,16 +70,14 @@ export class LootGeneratorModal extends Modal {
 	/**
 	 * Create simplified form with 4 inputs
 	 */
-	private createSimplifiedForm(container: HTMLElement) {
-		const formSection = container.createDiv('loot-form-section');
-
-		// Party Size
-		new Setting(formSection)
-			.setName('Party Size')
-			.setDesc('Number of players')
-			.addText(text => {
-				text
-					.setPlaceholder('4')
+        private createSimplifiedForm(container: HTMLElement) {
+                // Party Size
+                new Setting(container)
+                        .setName('Party Size')
+                        .setDesc('Number of players')
+                        .addText(text => {
+                                text
+                                        .setPlaceholder('4')
 					.setValue(this.partySize.toString())
 					.onChange(value => {
 						const num = parseInt(value);
@@ -90,16 +88,16 @@ export class LootGeneratorModal extends Modal {
 				text.inputEl.type = 'number';
 				text.inputEl.setAttribute('min', '1');
 				text.inputEl.setAttribute('max', '10');
-				return text;
-			});
+                                return text;
+                        });
 
-		// Party Level
-		new Setting(formSection)
-			.setName('Party Level')
-			.setDesc('Average character level')
-			.addText(text => {
-				text
-					.setPlaceholder('5')
+                // Party Level
+                new Setting(container)
+                        .setName('Party Level')
+                        .setDesc('Average character level')
+                        .addText(text => {
+                                text
+                                        .setPlaceholder('5')
 					.setValue(this.partyLevel.toString())
 					.onChange(value => {
 						const num = parseInt(value);
@@ -110,65 +108,49 @@ export class LootGeneratorModal extends Modal {
 				text.inputEl.type = 'number';
 				text.inputEl.setAttribute('min', '1');
 				text.inputEl.setAttribute('max', '20');
-				return text;
-			});
+                                return text;
+                        });
 
-		// Loot Type - Button Group
-		const lootTypeSetting = new Setting(formSection)
-			.setName('Loot Type')
-			.setDesc('Choose what kind of treasure to generate');
+                // Loot Type - Dropdown control
+                const lootTypes: Array<{ value: SimpleLootType; label: string }> = [
+                        { value: 'coins', label: 'Coins' },
+                        { value: 'treasure', label: 'Treasure' },
+                        { value: 'magic', label: 'Magic' },
+                        { value: 'equipment', label: 'Equipment' },
+                        { value: 'everything', label: 'Everything' }
+                ];
 
-		const buttonContainer = lootTypeSetting.controlEl.createDiv('loot-type-buttons');
+                new Setting(container)
+                        .setName('Loot Type')
+                        .setDesc('Choose what kind of treasure to generate')
+                        .addDropdown(dropdown => {
+                                lootTypes.forEach(type => dropdown.addOption(type.value, type.label));
+                                dropdown.setValue(this.lootType);
+                                dropdown.onChange(value => {
+                                        this.lootType = value as SimpleLootType;
+                                });
 
-		const lootTypes: Array<{ value: SimpleLootType; label: string; icon: string }> = [
-			{ value: 'coins', label: 'Coins', icon: '💰' },
-			{ value: 'treasure', label: 'Treasure', icon: '💎' },
-			{ value: 'magic', label: 'Magic', icon: '✨' },
-			{ value: 'equipment', label: 'Equipment', icon: '⚔️' },
-			{ value: 'everything', label: 'Everything', icon: '🎲' }
-		];
+                                return dropdown;
+                        });
 
-		lootTypes.forEach(type => {
-			const button = buttonContainer.createEl('button', {
-				cls: 'loot-type-button',
-				text: `${type.icon} ${type.label}`
-			});
+                // Amount Slider
+                const amountSetting = new Setting(container)
+                        .setName('Loot Amount')
+                        .setDesc(`Multiplier: ${this.amountMultiplier.toFixed(1)}x`);
 
-			if (type.value === this.lootType) {
-				button.addClass('active');
-			}
+                amountSetting.addSlider(slider => {
+                        slider
+                                .setLimits(0.5, 3.0, 0.1)
+                                .setValue(this.amountMultiplier)
+                                .setDynamicTooltip()
+                                .onChange(value => {
+                                        this.amountMultiplier = value;
+                                        amountSetting.descEl.setText(`Multiplier: ${value.toFixed(1)}x`);
+                                });
 
-			button.addEventListener('click', () => {
-				this.lootType = type.value;
-				// Update button active states
-				buttonContainer.querySelectorAll('.loot-type-button').forEach(btn => {
-					btn.removeClass('active');
-				});
-				button.addClass('active');
-			});
-		});
-
-		// Amount Slider
-		new Setting(formSection)
-			.setName('Loot Amount')
-			.setDesc(`Multiplier: ${this.amountMultiplier.toFixed(1)}x`)
-			.addSlider(slider => {
-				slider
-					.setLimits(0.5, 3.0, 0.1)
-					.setValue(this.amountMultiplier)
-					.setDynamicTooltip()
-					.onChange(value => {
-						this.amountMultiplier = value;
-						// Update description
-						const descEl = formSection.querySelector('.setting-item:last-child .setting-item-description');
-						if (descEl) {
-							descEl.textContent = `Multiplier: ${value.toFixed(1)}x`;
-						}
-					});
-
-				return slider;
-			});
-	}
+                        return slider;
+                });
+        }
 
 	/**
 	 * Create loot display area
